@@ -2,6 +2,8 @@
 
 This document describes how to publish a new release of `ud-hf-parquet-tools`.
 
+**Note**: This project uses [uv](https://github.com/astral-sh/uv) for package management. All commands use `uv pip` instead of plain `pip` for consistency with the project's development workflow.
+
 ## Table of Contents
 
 1. [Pre-Release Checklist](#pre-release-checklist)
@@ -125,7 +127,7 @@ Clean any previous builds and create new distribution packages:
 rm -rf dist/ build/ *.egg-info
 
 # Install/upgrade build tools
-pip install --upgrade build twine
+uv pip install --upgrade build twine
 
 # Build the package
 python -m build
@@ -144,7 +146,7 @@ Upload to TestPyPI first to verify everything works:
 twine upload --repository testpypi dist/*
 
 # Test installation from TestPyPI
-pip install --index-url https://test.pypi.org/simple/ \
+uv pip install --index-url https://test.pypi.org/simple/ \
     --extra-index-url https://pypi.org/simple/ \
     ud-hf-parquet-tools==X.Y.Z
 
@@ -209,14 +211,14 @@ Test that users can install the new version:
 
 ```bash
 # Create a fresh virtual environment
-python -m venv test_env
+uv venv test_env
 source test_env/bin/activate
 
 # Install from PyPI
-pip install ud-hf-parquet-tools==X.Y.Z
+uv pip install ud-hf-parquet-tools==X.Y.Z
 
 # Verify version
-pip show ud-hf-parquet-tools
+uv pip show ud-hf-parquet-tools
 
 # Test functionality
 ud-hfp-tools --help
@@ -267,7 +269,7 @@ If this library is used by other projects (e.g., the Universal Dependencies data
 **Solutions**:
 ```bash
 # Upgrade build tools
-pip install --upgrade build setuptools wheel
+uv pip install --upgrade build setuptools wheel
 
 # Clear cache
 rm -rf dist/ build/ *.egg-info __pycache__ .pytest_cache
@@ -367,7 +369,7 @@ twine upload --repository testpypi dist/*
 twine upload dist/*
 
 # 8. Verify
-pip install --upgrade ud-hf-parquet-tools==X.Y.Z
+uv pip install --upgrade ud-hf-parquet-tools==X.Y.Z
 ud-hfp-tools --help
 
 # 9. Create GitHub release
