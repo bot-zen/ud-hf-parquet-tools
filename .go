@@ -1,0 +1,1 @@
+ud-hfp-tools validate --metadata ../universal_dependencies/metadata.json --ud-repos-dir ../universal_dependencies/tools/UD_repos/ -v --revision main --local --parquet-dir ../universal_dependencies/parquet/

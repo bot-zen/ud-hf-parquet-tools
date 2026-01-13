@@ -48,13 +48,13 @@ pip install ud-hf-parquet-tools
 Check that the CLI is available:
 
 ```bash
-ud-tools --help
+ud-hfp-tools --help
 ```
 
 You should see:
 
 ```
-usage: ud-tools [-h] {generate,validate} ...
+usage: ud-hfp-tools [-h] {generate,validate} ...
 
 Tools for generating and validating Universal Dependencies Parquet datasets
 
@@ -97,9 +97,9 @@ Development dependencies:
 
 ## Troubleshooting
 
-### Command not found: ud-tools
+### Command not found: ud-hfp-tools
 
-If `ud-tools` is not found after installation, ensure your virtual environment is activated:
+If `ud-hfp-tools` is not found after installation, ensure your virtual environment is activated:
 
 ```bash
 source .venv/bin/activate

@@ -35,26 +35,26 @@ Generate Parquet files:
 
 ```bash
 # Generate for all treebanks
-ud-tools generate --metadata metadata.json --output-dir parquet/
+ud-hfp-tools generate --metadata metadata.json --output-dir parquet/
 
 # Generate for specific treebanks
-ud-tools generate --metadata metadata.json --treebanks fr_gsd,en_ewt --output-dir parquet/
+ud-hfp-tools generate --metadata metadata.json --treebanks fr_gsd,en_ewt --output-dir parquet/
 
 # Test mode (3 treebanks only)
-ud-tools generate --metadata metadata.json --test
+ud-hfp-tools generate --metadata metadata.json --test
 ```
 
 Validate Parquet files:
 
 ```bash
 # Validate from local files
-ud-tools validate --local --metadata metadata.json
+ud-hfp-tools validate --local --metadata metadata.json
 
 # Validate specific treebanks
-ud-tools validate --local --treebanks fr_gsd,en_ewt
+ud-hfp-tools validate --local --treebanks fr_gsd,en_ewt
 
 # Validate from HuggingFace Hub
-ud-tools validate --revision 2.17 --treebanks fr_gsd
+ud-hfp-tools validate --revision 2.17 --treebanks fr_gsd
 ```
 
 ### Python API

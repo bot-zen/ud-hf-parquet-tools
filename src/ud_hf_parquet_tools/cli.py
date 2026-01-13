@@ -35,7 +35,7 @@ def generate_command(args):
                     blocked_treebanks = {k: v for k, v in blocked_data.items() if v is not None}
     
     verbose = args.verbose and not args.quiet
-    
+
     if verbose:
         print(f"Loaded metadata for {len(metadata)} treebanks")
         if blocked_treebanks:
