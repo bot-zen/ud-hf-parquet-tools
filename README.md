@@ -169,6 +169,20 @@ Generated Parquet files include:
 }
 ```
 
+## Documentation
+
+- **[RELEASE.md](RELEASE.md)**: Complete guide for publishing new releases
+  - Pre-release checklist
+  - Version numbering guidelines
+  - Git tagging and PyPI publishing workflow
+  - Troubleshooting guide
+
+- **[CHANGELOG.md](CHANGELOG.md)**: Version history and release notes
+
+- **[INSTALLATION.md](INSTALLATION.md)**: Detailed installation instructions
+
+- **[CONTRIBUTING.md](CONTRIBUTING.md)**: Guidelines for contributors
+
 ## Development
 
 Clone and install with development dependencies:
