@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List
 
+import pyarrow.parquet as pq
 from datasets import load_dataset
 
 from .conllu_utils import example_to_conllu
@@ -287,6 +288,127 @@ def validate_treebank(
     # Note: field-by-field mode could be added here if needed
     # For now, text mode is the primary validation method as it tests
     # the actual production reconstruction logic
+
+    return results
+
+
+def compare_parquet_tables(
+    name: str,
+    metadata: Dict[str, Any],
+    parquet_dir1: Path,
+    parquet_dir2: Path,
+    verbose: bool = True
+) -> Dict[str, Any]:
+    """
+    Compare two parquet outputs for a single treebank.
+
+    Args:
+        name: Treebank name (e.g., "fr_gsd")
+        metadata: Treebank metadata including splits
+        parquet_dir1: First parquet directory
+        parquet_dir2: Second parquet directory
+        verbose: Print progress messages
+
+    Returns:
+        Comparison results dictionary
+    """
+    results = {
+        'name': name,
+        'splits': {},
+        'total_splits': 0,
+        'total_matches': 0,
+        'total_mismatches': 0,
+        'success': True
+    }
+
+    if verbose:
+        print(f"\nComparing {name}...")
+
+    # Check both directories exist
+    treebank_dir1 = parquet_dir1 / name
+    treebank_dir2 = parquet_dir2 / name
+
+    if not treebank_dir1.exists():
+        results['success'] = False
+        results['error'] = f"Directory not found: {treebank_dir1}"
+        if verbose:
+            print(f"  ERROR: {results['error']}")
+        return results
+
+    if not treebank_dir2.exists():
+        results['success'] = False
+        results['error'] = f"Directory not found: {treebank_dir2}"
+        if verbose:
+            print(f"  ERROR: {results['error']}")
+        return results
+
+    # Process each split
+    for split_name in metadata.get("splits", {}).keys():
+        parquet_file1 = treebank_dir1 / f"{split_name}.parquet"
+        parquet_file2 = treebank_dir2 / f"{split_name}.parquet"
+
+        results['total_splits'] += 1
+
+        # Check if both files exist
+        if not parquet_file1.exists():
+            results['success'] = False
+            results['splits'][split_name] = {
+                'error': f"File not found: {parquet_file1}",
+                'matched': False
+            }
+            results['total_mismatches'] += 1
+            if verbose:
+                print(f"  ❌ {split_name}: File not found in dir1")
+            continue
+
+        if not parquet_file2.exists():
+            results['success'] = False
+            results['splits'][split_name] = {
+                'error': f"File not found: {parquet_file2}",
+                'matched': False
+            }
+            results['total_mismatches'] += 1
+            if verbose:
+                print(f"  ❌ {split_name}: File not found in dir2")
+            continue
+
+        try:
+            # Read both parquet files as Arrow tables
+            table1 = pq.read_table(parquet_file1)
+            table2 = pq.read_table(parquet_file2)
+
+            # Compare tables
+            if table1.equals(table2):
+                results['splits'][split_name] = {
+                    'matched': True,
+                    'num_rows': len(table1)
+                }
+                results['total_matches'] += 1
+                if verbose:
+                    print(f"  ✅ {split_name}: Tables match ({len(table1)} rows)")
+            else:
+                results['success'] = False
+                results['splits'][split_name] = {
+                    'matched': False,
+                    'num_rows1': len(table1),
+                    'num_rows2': len(table2),
+                    'schema_match': table1.schema.equals(table2.schema)
+                }
+                results['total_mismatches'] += 1
+                if verbose:
+                    print(f"  ❌ {split_name}: Tables differ")
+                    print(f"     Rows: {len(table1)} vs {len(table2)}")
+                    print(f"     Schema match: {table1.schema.equals(table2.schema)}")
+
+        except Exception as e:
+            results['success'] = False
+            results['splits'][split_name] = {
+                'error': f"Comparison failed: {e}",
+                'matched': False
+            }
+            results['total_mismatches'] += 1
+            if verbose:
+                print(f"  ❌ {split_name}: Error - {e}")
 
     return results
 

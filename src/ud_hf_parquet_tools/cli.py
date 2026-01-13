@@ -10,7 +10,7 @@ from pathlib import Path
 import yaml
 
 from .generator import generate_parquet_for_treebank
-from .validator import validate_treebank
+from .validator import compare_parquet_tables, validate_treebank
 
 
 def generate_command(args):
@@ -249,6 +249,102 @@ def validate_command(args):
     return 0 if fail_count == 0 else 1
 
 
+def compare_command(args):
+    """Handle the compare command."""
+    # Load metadata
+    metadata_file = Path(args.metadata)
+    if not metadata_file.exists():
+        print(f"Error: Metadata file not found: {metadata_file}", file=sys.stderr)
+        return 1
+
+    with open(metadata_file, "r", encoding="utf-8") as f:
+        metadata = json.load(f)
+
+    verbose = args.verbose and not args.quiet
+
+    if verbose:
+        print("=" * 60)
+        print("Universal Dependencies Parquet Comparison")
+        print("=" * 60)
+        print(f"Loaded metadata for {len(metadata)} treebanks")
+        print(f"Directory 1: {args.parquet_dir1}")
+        print(f"Directory 2: {args.parquet_dir2}")
+        print()
+
+    # Determine which treebanks to compare
+    if args.test:
+        treebanks_to_compare = ["fr_gsd", "en_ewt", "it_isdt"]
+        treebanks_to_compare = [t for t in treebanks_to_compare if t in metadata]
+        if verbose:
+            print(f"TEST MODE: Comparing {len(treebanks_to_compare)} treebanks")
+    elif args.treebanks:
+        treebanks_to_compare = [t.strip() for t in args.treebanks.split(",")]
+        treebanks_to_compare = [t for t in treebanks_to_compare if t in metadata]
+        if verbose:
+            print(f"Comparing {len(treebanks_to_compare)} specified treebanks")
+    else:
+        treebanks_to_compare = sorted(metadata.keys())
+        if verbose:
+            print(f"Comparing all {len(treebanks_to_compare)} treebanks")
+
+    # Compare treebanks
+    match_count = 0
+    mismatch_count = 0
+    all_results = []
+
+    for i, name in enumerate(treebanks_to_compare, 1):
+        if verbose:
+            print(f"\n[{i}/{len(treebanks_to_compare)}] {name}")
+
+        try:
+            results = compare_parquet_tables(
+                name=name,
+                metadata=metadata[name],
+                parquet_dir1=Path(args.parquet_dir1),
+                parquet_dir2=Path(args.parquet_dir2),
+                verbose=verbose
+            )
+
+            all_results.append(results)
+
+            if results['success']:
+                match_count += 1
+            else:
+                mismatch_count += 1
+
+        except Exception as e:
+            print(f"  ERROR: {e}")
+            import traceback
+            traceback.print_exc()
+            mismatch_count += 1
+
+    # Summary
+    if verbose:
+        print()
+        print("=" * 60)
+        print("COMPARISON SUMMARY")
+        print("=" * 60)
+        print(f"✅ Matched: {match_count}")
+        print(f"❌ Mismatched: {mismatch_count}")
+        print(f"Total: {match_count + mismatch_count}")
+
+        total_splits = sum(r.get('total_splits', 0) for r in all_results)
+        total_matches = sum(r.get('total_matches', 0) for r in all_results)
+        total_mismatches = sum(r.get('total_mismatches', 0) for r in all_results)
+
+        print(f"\nTotal splits compared: {total_splits:,}")
+        print(f"Split matches: {total_matches:,}")
+        print(f"Split mismatches: {total_mismatches:,}")
+        print()
+
+        if mismatch_count == 0:
+            print("🎉 SUCCESS: All parquet files match perfectly!")
+        else:
+            print("⚠️  COMPARISON FAILED: Some files differ.")
+
+    return 0 if mismatch_count == 0 else 1
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -282,18 +378,30 @@ def main():
     val_parser.add_argument("-v", "--verbose", action="store_true", default=True, help="Verbose output")
     val_parser.add_argument("-vv", "--very-verbose", action="store_true", help="Show all differences")
     val_parser.add_argument("-q", "--quiet", action="store_true", help="Quiet mode")
-    
+
+    # Compare command
+    cmp_parser = subparsers.add_parser("compare", help="Compare two Parquet outputs")
+    cmp_parser.add_argument("--metadata", required=True, help="Path to metadata JSON file")
+    cmp_parser.add_argument("--parquet-dir1", required=True, help="First parquet directory")
+    cmp_parser.add_argument("--parquet-dir2", required=True, help="Second parquet directory")
+    cmp_parser.add_argument("--test", action="store_true", help="Test mode: compare 3 treebanks only")
+    cmp_parser.add_argument("--treebanks", help="Comma-separated list of treebank names")
+    cmp_parser.add_argument("-v", "--verbose", action="store_true", default=True, help="Verbose output")
+    cmp_parser.add_argument("-q", "--quiet", action="store_true", help="Quiet mode")
+
     args = parser.parse_args()
-    
+
     if not args.command:
         parser.print_help()
         return 1
-    
+
     if args.command == "generate":
         return generate_command(args)
     elif args.command == "validate":
         return validate_command(args)
-    
+    elif args.command == "compare":
+        return compare_command(args)
+
     return 0
 
 
