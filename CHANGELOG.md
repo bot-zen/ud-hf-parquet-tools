@@ -7,12 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-01-13
+
 ### Added
-- Initial CHANGELOG.md
-- RELEASE.md with comprehensive release process documentation
+- **CONLLU_PARSING.md**: Comprehensive documentation of CoNLL-U parsing issues
+  - All 7 parsing challenges with real treebank examples
+  - Affected treebank statistics (1,323+ sentences with issues)
+  - Implementation strategies and code locations
+  - Testing procedures and fidelity results
+- **RELEASE.md**: Complete release process documentation
+  - Pre-release checklist
+  - Version numbering guidelines
+  - Git tagging and PyPI publishing workflow with uv
+  - Troubleshooting guide
+- **CHANGELOG.md**: Version history following Keep a Changelog format
+- `compare` command: Compare two parquet outputs using PyArrow table comparison
+- `--overwrite` flag: Skip regeneration of existing parquet files by default
+- `--blocked-treebanks` flag: Filter treebanks with license restrictions
 
 ### Changed
+- **Migration to uv**: Use native `uv build` and `uv publish` commands
+  - Removed dependency on separate build and twine packages
+  - Updated all documentation and examples to use uv
+  - Authentication via UV_PUBLISH_TOKEN or system keyring
+- **pyproject.toml**: Align with uv dependency groups standard
+  - Changed `[project.optional-dependencies]` to `[dependency-groups]`
+  - Updated pytest from >=7.0.0 to >=9.0.2
+- **CLI improvements**:
+  - `--parquet-dir` now implies `--local` and is incompatible with `--revision`
+  - Distinguish between metadata and token line errors in validation output
+  - Skip diff header lines (---, +++, @@) in error counting
 - Applied ruff formatting and linting across codebase
+- Finalized CLI command name as `ud-hfp-tools`
+
+### Fixed
+- Metadata order preservation in CoNLL-U reconstruction
+  - Special markers (__SENT_ID__, __TEXT__) preserve original ordering
+  - Fallback handling when comments list is empty
+- Validator properly reports missing CoNLL-U files instead of confusing diffs
+- TypeError when using HuggingFace Hub string paths (not Path objects)
+- `--revision` flag now correctly constructs HF Hub paths
+
+### Removed
+- `examples/` directory (functionality fully covered by CLI and wrapper scripts)
 
 ## [1.0.0] - 2025-01-13
 
@@ -62,5 +99,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Links
 
-[Unreleased]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bot-zen/ud-hf-parquet-tools/releases/tag/v1.0.0
