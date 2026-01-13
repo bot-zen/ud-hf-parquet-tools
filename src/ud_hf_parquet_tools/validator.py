@@ -57,13 +57,14 @@ def validate_treebank_text(
         print(f"  Text-based comparison...")
 
     # Check if parquet directory exists for local validation
-    treebank_parquet_dir = parquet_dir / name
-    if isinstance(parquet_dir, Path) and not treebank_parquet_dir.exists():
-        results['success'] = False
-        results['error'] = f"Parquet directory not found: {treebank_parquet_dir}"
-        if verbose:
-            print(f"    ERROR: {results['error']}")
-        return results
+    if isinstance(parquet_dir, Path):
+        treebank_parquet_dir = parquet_dir / name
+        if not treebank_parquet_dir.exists():
+            results['success'] = False
+            results['error'] = f"Parquet directory not found: {treebank_parquet_dir}"
+            if verbose:
+                print(f"    ERROR: {results['error']}")
+            return results
 
     # Process each split
     for split_name, split_data in metadata.get("splits", {}).items():
