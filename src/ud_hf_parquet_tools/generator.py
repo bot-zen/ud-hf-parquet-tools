@@ -190,7 +190,8 @@ def generate_parquet_for_treebank(
     metadata: Dict[str, Any],
     ud_repos_dir: Path,
     output_dir: Path,
-    verbose: bool = True
+    verbose: bool = True,
+    overwrite: bool = False
 ) -> bool:
     """
     Generate Parquet files for a single treebank.
@@ -201,16 +202,31 @@ def generate_parquet_for_treebank(
         ud_repos_dir: Path to UD_repos directory containing treebank data
         output_dir: Output directory for Parquet files
         verbose: Print progress messages
+        overwrite: Overwrite existing parquet files (default: skip existing)
 
     Returns:
         True if successful, False otherwise
     """
-    if verbose:
-        print(f"Processing {name}...")
-
     # Create output directory for this treebank
     treebank_output_dir = output_dir / name
     treebank_output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Check if all parquet files already exist
+    if not overwrite:
+        expected_files = []
+        for split_name in metadata.get("splits", {}).keys():
+            parquet_path = treebank_output_dir / f"{split_name}.parquet"
+            expected_files.append((split_name, parquet_path))
+
+        all_exist = all(path.exists() for _, path in expected_files)
+
+        if all_exist and expected_files:
+            if verbose:
+                print(f"Skipping {name} (all parquet files exist, use --overwrite to regenerate)")
+            return True
+
+    if verbose:
+        print(f"Processing {name}...")
 
     # Process each split
     dataset_dict = {}

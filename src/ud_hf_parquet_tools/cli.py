@@ -89,7 +89,8 @@ def generate_command(args):
                 metadata=metadata[name],
                 ud_repos_dir=Path(args.ud_repos_dir),
                 output_dir=Path(args.output_dir),
-                verbose=verbose
+                verbose=verbose,
+                overwrite=args.overwrite
             )
             
             if success:
@@ -263,6 +264,7 @@ def main():
     gen_parser.add_argument("--ud-repos-dir", default="UD_repos", help="Path to UD repositories directory")
     gen_parser.add_argument("--output-dir", default="parquet", help="Output directory for Parquet files")
     gen_parser.add_argument("--blocked-treebanks", help="Path to blocked treebanks YAML file")
+    gen_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing parquet files (default: skip)")
     gen_parser.add_argument("--test", action="store_true", help="Test mode: process 3 treebanks only")
     gen_parser.add_argument("--treebanks", help="Comma-separated list of treebank names")
     gen_parser.add_argument("-v", "--verbose", action="store_true", default=True, help="Verbose output")
