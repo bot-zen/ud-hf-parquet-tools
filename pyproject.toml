@@ -1,0 +1,60 @@
+[project]
+name = "ud-hf-parquet-tools"
+version = "1.0.0"
+description = "Tools for generating and validating Universal Dependencies datasets in Parquet format for HuggingFace"
+authors = [
+    {name = "Egon W. Stemle", email = "egon.stemle@eurac.edu"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "Apache-2.0"}
+keywords = ["universal-dependencies", "nlp", "conllu", "parquet", "huggingface", "datasets"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Linguistic",
+]
+
+dependencies = [
+    "conllu>=5.0.0",
+    "datasets>=4.0.0",
+    "pyarrow>=14.0.0",
+    "pyyaml>=6.0.2",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.scripts]
+ud-tools = "ud_hf_parquet_tools.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/egon-stemle/ud-hf-parquet-tools"
+Repository = "https://github.com/egon-stemle/ud-hf-parquet-tools"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ud_hf_parquet_tools"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
