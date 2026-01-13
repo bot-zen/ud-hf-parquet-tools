@@ -174,9 +174,10 @@ def validate_command(args):
             results = validate_treebank(
                 name=name,
                 metadata=metadata[name],
-                parquet_dir=Path(args.parquet_dir) if args.local else f"hf://datasets/commul/universal_dependencies@{args.revision}/parquet",
+                parquet_dir=Path(args.parquet_dir),
                 ud_repos_dir=Path(args.ud_repos_dir),
                 use_local=args.local,
+                revision=args.revision,
                 verbose=verbose,
                 very_verbose=very_verbose
             )
@@ -222,7 +223,7 @@ def validate_command(args):
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        prog="ud-tools",
+        prog="ud-hfp-tools",
         description="Tools for generating and validating Universal Dependencies Parquet datasets"
     )
     

@@ -26,7 +26,7 @@ def normalize_conllu(text: str) -> str:
 def validate_treebank_text(
     name: str,
     metadata: Dict[str, Any],
-    parquet_dir: Path,
+    parquet_dir: Path | str,
     ud_repos_dir: Path,
     verbose: bool = True,
     very_verbose: bool = False
@@ -37,7 +37,8 @@ def validate_treebank_text(
     Args:
         name: Treebank name (e.g., "fr_gsd")
         metadata: Treebank metadata including splits and file paths
-        parquet_dir: Path to parquet directory (local or HF Hub path)
+        parquet_dir: Path to parquet directory (local Path or HF Hub string)
+        ud_repos_dir: Path to UD repositories directory
         verbose: Print progress messages
         very_verbose: Print all differences (not just first 20 lines)
 
@@ -188,7 +189,7 @@ def validate_treebank_text(
 def validate_treebank(
     name: str,
     metadata: Dict[str, Any],
-    parquet_dir: Path,
+    parquet_dir: Path | str,
     ud_repos_dir: Path,
     use_local: bool = False,
     revision: str = "2.17",
@@ -202,8 +203,10 @@ def validate_treebank(
     Args:
         name: Treebank name (e.g., "fr_gsd")
         metadata: Treebank metadata
+        parquet_dir: Path to parquet directory (local Path or HF Hub string)
+        ud_repos_dir: Path to UD repositories directory
         use_local: Load from local parquet files instead of HF Hub
-        revision: HuggingFace Hub revision
+        revision: HuggingFace Hub revision (used to construct path if not use_local)
         mode: Comparison mode ('text', 'field', or 'both')
         verbose: Print progress messages
         very_verbose: Print all differences (not just first 20 lines)
@@ -215,10 +218,8 @@ def validate_treebank(
         source = "local parquet" if use_local else f"HF Hub (revision={revision})"
         print(f"\nValidating {name} from {source}...")
 
-    # Determine parquet directory
-    if use_local:
-        parquet_dir = PARQUET_DIR
-    else:
+    # Construct parquet path if not using local files
+    if not use_local:
         parquet_dir = f"hf://datasets/commul/universal_dependencies@{revision}/parquet"
 
     # Run text-based validation (default and recommended)
@@ -226,7 +227,8 @@ def validate_treebank(
         results = validate_treebank_text(
             name,
             metadata,
-            parquet_dir if use_local else Path(parquet_dir),
+            parquet_dir,
+            ud_repos_dir,
             verbose,
             very_verbose
         )

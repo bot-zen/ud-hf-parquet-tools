@@ -36,7 +36,7 @@ dev = [
 ]
 
 [project.scripts]
-ud-tools = "ud_hf_parquet_tools.cli:main"
+ud-hfp-tools = "ud_hf_parquet_tools.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/bot-zen/ud-hf-parquet-tools"
