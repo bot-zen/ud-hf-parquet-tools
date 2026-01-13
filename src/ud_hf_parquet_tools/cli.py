@@ -121,12 +121,26 @@ def generate_command(args):
 
 def validate_command(args):
     """Handle the validate command."""
+    # Validate argument compatibility
+    if args.parquet_dir:
+        # --parquet-dir implies --local
+        args.local = True
+        # Check if --revision was explicitly changed from default
+        if args.revision != "2.17":
+            print("Error: --parquet-dir and --revision are incompatible", file=sys.stderr)
+            print("  Use --parquet-dir for local validation OR --revision for HF Hub", file=sys.stderr)
+            return 1
+
+    # Set default parquet-dir if using local mode
+    if args.local and not args.parquet_dir:
+        args.parquet_dir = "parquet"
+
     # Load metadata
     metadata_file = Path(args.metadata)
     if not metadata_file.exists():
         print(f"Error: Metadata file not found: {metadata_file}", file=sys.stderr)
         return 1
-    
+
     with open(metadata_file, "r", encoding="utf-8") as f:
         metadata = json.load(f)
     
@@ -226,7 +240,7 @@ def validate_command(args):
         if fail_count == 0:
             print("🎉 SUCCESS: All parquet files validated successfully!")
         elif total_token_errors == 0:
-            print("⚠️  All token lines match perfectly!")
+            print("✅ All token lines match perfectly!")
             print("⚠️  Only metadata differences found (may be formatting/order issues).")
         else:
             print("⚠️  VALIDATION FAILED: Token line differences found.")
@@ -258,9 +272,9 @@ def main():
     val_parser = subparsers.add_parser("validate", help="Validate Parquet files against CoNLL-U")
     val_parser.add_argument("--metadata", required=True, help="Path to metadata JSON file")
     val_parser.add_argument("--ud-repos-dir", default="UD_repos", help="Path to UD repositories directory")
-    val_parser.add_argument("--parquet-dir", default="parquet", help="Path to parquet directory (for local)")
-    val_parser.add_argument("--local", action="store_true", help="Validate local files")
-    val_parser.add_argument("--revision", default="2.17", help="HuggingFace Hub revision")
+    val_parser.add_argument("--parquet-dir", help="Path to parquet directory (implies --local)")
+    val_parser.add_argument("--local", action="store_true", help="Validate local files (default parquet dir: 'parquet')")
+    val_parser.add_argument("--revision", default="2.17", help="HuggingFace Hub revision (incompatible with --parquet-dir)")
     val_parser.add_argument("--test", action="store_true", help="Test mode: validate 3 treebanks only")
     val_parser.add_argument("--treebanks", help="Comma-separated list of treebank names")
     val_parser.add_argument("-v", "--verbose", action="store_true", default=True, help="Verbose output")
