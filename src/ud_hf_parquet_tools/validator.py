@@ -185,7 +185,10 @@ def validate_treebank_text(
             metadata_diffs = []
             token_diffs = []
             for line in diff:
-                if line.startswith('+') or line.startswith('-'):
+                # Skip diff headers (---, +++, @@)
+                if line.startswith(('---', '+++', '@@')):
+                    continue
+                if line.startswith(('+', '-')):
                     # Check if the diff line is about a metadata line (starts with #)
                     content = line[1:].strip()  # Remove +/- prefix
                     if content.startswith('#'):
