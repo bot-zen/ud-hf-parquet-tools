@@ -189,10 +189,6 @@ def generate_parquet_for_treebank(
     name: str,
     metadata: Dict[str, Any],
     ud_repos_dir: Path,
-    ud_repos_dir: Path,
-    name: str,
-    metadata: Dict[str, Any],
-    ud_repos_dir: Path,
     output_dir: Path,
     verbose: bool = True
 ) -> bool:
