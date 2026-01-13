@@ -16,7 +16,11 @@ from .conllu_utils import (
     extract_raw_comments_from_sentence,
     extract_raw_fields_from_sentence,
     is_feats_sorted,
+    parse_deps,
+    parse_feats,
+    parse_misc,
     sort_feats_dict,
+    write_conllu,
 )
 from .generator import generate_parquet_for_treebank
 from .validator import normalize_conllu, validate_treebank, validate_treebank_text
@@ -39,5 +43,9 @@ __all__ = [
     "extract_raw_comments_from_sentence",
     "extract_raw_fields_from_sentence",
     "is_feats_sorted",
+    "parse_deps",
+    "parse_feats",
+    "parse_misc",
     "sort_feats_dict",
+    "write_conllu",
 ]

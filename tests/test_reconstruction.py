@@ -256,7 +256,7 @@ class TestWriteConllu:
         }
 
         dataset = MockDataset([example])
-        write_conllu(dataset)
+        write_conllu(dataset, "-")
 
         captured = capsys.readouterr()
         assert "# sent_id = test-001" in captured.out

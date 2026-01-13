@@ -2,55 +2,52 @@
 """
 Pytest configuration and shared fixtures.
 
-This file loads helper functions from the template and generation script
-so they're available to all test modules.
+This file makes the library functions available to all test modules.
 """
 
 import sys
-import importlib.util
-from pathlib import Path
-
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-sys.path.insert(0, str(project_root / "tools"))
-
-# Load template module - extract only Python code before Jinja2 template
-template_file = project_root / "tools" / "templates" / "universal_dependencies.tmpl"
-
-# Read and extract Python code (before the class definition which contains Jinja2)
-with open(template_file, "r", encoding="utf-8") as f:
-    template_lines = f.readlines()
-
-# Extract lines until we hit the Jinja2 template section
-# The template starts with _CITATION at around line 262
-python_code_lines = []
-for line in template_lines:
-    # Stop when we reach the Jinja2 template section
-    if line.strip().startswith("_CITATION") or line.strip().startswith("_DESCRIPTION"):
-        break
-    python_code_lines.append(line)
-
-python_code = "".join(python_code_lines)
-
-# Add necessary imports that the functions depend on
-python_code = "import sys\nfrom pathlib import Path\nfrom io import StringIO\nfrom typing import Dict, Optional\n" + python_code
-
-# Create a module namespace and execute the Python code
 import types
-ud_module = types.ModuleType("ud_template")
-ud_module.__file__ = str(template_file)
 
-# Execute Python code in the module's namespace
-exec(python_code, ud_module.__dict__)
+# Make all library functions available for tests
+from ud_hf_parquet_tools import (
+    conllu_dict_to_string,
+    conllu_optional_field,
+    example_to_conllu,
+    extract_raw_comments_from_sentence,
+    extract_raw_fields_from_sentence,
+    is_feats_sorted,
+    parse_deps,
+    parse_feats,
+    parse_misc,
+    sort_feats_dict,
+    write_conllu,
+)
+from ud_hf_parquet_tools.generator import extract_examples_from_conllu
+from ud_hf_parquet_tools.validator import normalize_conllu
 
-# Make helper functions available globally to tests
-sys.modules["ud_template"] = ud_module
+# Create a module namespace to match the original test expectations
+ud_template = types.ModuleType("ud_template")
 
-# Load generation script functions
-gen_script = project_root / "tools" / "04_generate_parquet.py"
-spec = importlib.util.spec_from_file_location("generate_parquet", gen_script)
-generate_parquet = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(generate_parquet)
+# Populate it with all the functions tests expect
+ud_template.parse_feats = parse_feats
+ud_template.parse_deps = parse_deps
+ud_template.parse_misc = parse_misc
+ud_template.conllu_dict_to_string = conllu_dict_to_string
+ud_template.conllu_optional_field = conllu_optional_field
+ud_template.example_to_conllu = example_to_conllu
+ud_template.write_conllu = write_conllu
+ud_template.normalize_conllu = normalize_conllu
+
+sys.modules["ud_template"] = ud_template
+
+# Create generate_parquet module with functions tests expect
+generate_parquet = types.ModuleType("generate_parquet")
+generate_parquet.extract_examples_from_conllu = extract_examples_from_conllu
+generate_parquet.extract_raw_comments_from_sentence = extract_raw_comments_from_sentence
+generate_parquet.extract_raw_fields_from_sentence = extract_raw_fields_from_sentence
+generate_parquet.conllu_dict_to_string = conllu_dict_to_string
+generate_parquet.conllu_optional_field = conllu_optional_field
+generate_parquet.sort_feats_dict = sort_feats_dict
+generate_parquet.is_feats_sorted = is_feats_sorted
 
 sys.modules["generate_parquet"] = generate_parquet

@@ -294,14 +294,18 @@ def example_to_conllu(example: Dict[str, Any], upos_names: List[str] | None = No
     """
     lines = []
     
-    # Add metadata
+    # Add other comments first (skip markers for sent_id and text)
     for comment in example.get('comments', []):
-        if comment == "__SENT_ID__":
-            lines.append(f"# sent_id = {example['sent_id']}")
-        elif comment == "__TEXT__":
-            lines.append(f"# text = {example['text']}")
-        else:
+        if comment not in ["__SENT_ID__", "__TEXT__"]:
             lines.append(f"# {comment}")
+    
+    # Then add sent_id if present
+    if 'sent_id' in example and example['sent_id']:
+        lines.append(f"# sent_id = {example['sent_id']}")
+    
+    # Then add text if present
+    if 'text' in example and example['text']:
+        lines.append(f"# text = {example['text']}")
     
     # Parse MWT ranges
     mwt_ranges = {}
@@ -390,3 +394,118 @@ def example_to_conllu(example: Dict[str, Any], upos_names: List[str] | None = No
         token_idx += 1
     
     return '\n'.join(lines) + '\n\n'
+
+
+
+
+def parse_feats(feats_str: str | None) -> Dict[str, str]:
+    """
+    Parse CoNLL-U FEATS field string to dictionary.
+    
+    Args:
+        feats_str: CoNLL-U format string like "Case=Nom|Number=Sing" or None
+        
+    Returns:
+        Dictionary mapping feature names to values, empty dict if None
+        
+    Raises:
+        ValueError: If feats_str is empty string
+    """
+    if feats_str is None or feats_str == "_":
+        return {}
+    if feats_str == "":
+        raise ValueError("Cannot parse empty string")
+    return dict(kv.split('=', 1) for kv in feats_str.split('|') if '=' in kv)
+
+
+def parse_deps(deps_str: str | None) -> Dict[str, str]:
+    """
+    Parse CoNLL-U DEPS field string to dictionary.
+    
+    Args:
+        deps_str: CoNLL-U enhanced dependencies format like "4:nsubj|6:nsubj" or None
+        
+    Returns:
+        Dictionary mapping head indices to dependency relations, empty dict if None
+        
+    Raises:
+        ValueError: If deps_str is empty string
+    """
+    if deps_str is None or deps_str == "_":
+        return {}
+    if deps_str == "":
+        raise ValueError("Cannot parse empty string")
+    return dict(kv.split(':', 1) for kv in deps_str.split('|'))
+
+
+def parse_misc(misc_str: str | None) -> Dict[str, str]:
+    """
+    Parse CoNLL-U MISC field string to dictionary.
+    
+    Args:
+        misc_str: CoNLL-U format string like "SpaceAfter=No|Translit=value" or None
+        
+    Returns:
+        Dictionary mapping misc keys to values, empty dict if None
+        
+    Raises:
+        ValueError: If misc_str is empty string
+    """
+    if misc_str is None or misc_str == "_":
+        return {}
+    if misc_str == "":
+        raise ValueError("Cannot parse empty string")
+    return dict(kv.split('=', 1) for kv in misc_str.split('|') if '=' in kv)
+
+
+def write_conllu(dataset, output_file=None, upos_names=None):
+    """
+    Write a dataset to CoNLL-U format.
+
+    Args:
+        dataset: HuggingFace dataset with UD examples
+        output_file: Output file path, None for file-like object, "-" for stdout
+        upos_names: Optional list of UPOS label names for ClassLabel conversion
+
+    Returns:
+        StringIO object if output_file is None, otherwise None
+    """
+    from io import StringIO
+    import sys
+
+    # Get upos_names from dataset features if not provided
+    if upos_names is None and hasattr(dataset, 'features'):
+        if hasattr(dataset.features.get('upos', None), 'feature'):
+            upos_names = dataset.features['upos'].feature.names
+
+    # Determine output target
+    if output_file is None:
+        output = StringIO()
+        return_buffer = True
+        close_file = False
+    elif output_file == "-":
+        output = sys.stdout
+        return_buffer = False
+        close_file = False
+    elif isinstance(output_file, str):
+        output = open(output_file, 'w', encoding='utf-8')
+        return_buffer = False
+        close_file = True
+    else:
+        output = output_file
+        return_buffer = False
+        close_file = False
+
+    try:
+        # Write each example as CoNLL-U
+        for example in dataset:
+            conllu_text = example_to_conllu(example, upos_names)
+            output.write(conllu_text)
+
+        # Return StringIO buffer if requested
+        if return_buffer:
+            return output
+    finally:
+        # Close file if we opened it
+        if close_file:
+            output.close()
