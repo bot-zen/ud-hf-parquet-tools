@@ -39,8 +39,9 @@ dev = [
 ud-tools = "ud_hf_parquet_tools.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/egon-stemle/ud-hf-parquet-tools"
-Repository = "https://github.com/egon-stemle/ud-hf-parquet-tools"
+Homepage = "https://github.com/bot-zen/ud-hf-parquet-tools"
+Repository = "https://github.com/bot-zen/ud-hf-parquet-tools"
+Issues = "https://github.com/bot-zen/ud-hf-parquet-tools/issues"
 
 [build-system]
 requires = ["hatchling"]
