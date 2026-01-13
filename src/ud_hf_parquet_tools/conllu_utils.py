@@ -293,18 +293,32 @@ def example_to_conllu(example: Dict[str, Any], upos_names: List[str] | None = No
         CoNLL-U formatted string for this sentence
     """
     lines = []
-    
-    # Add other comments first (skip markers for sent_id and text)
+
+    # Track if we've added sent_id and text via markers
+    sent_id_added = False
+    text_added = False
+
+    # Reconstruct comments in original order using markers
     for comment in example.get('comments', []):
-        if comment not in ["__SENT_ID__", "__TEXT__"]:
+        if comment == "__SENT_ID__":
+            # Insert sent_id at its original position
+            if 'sent_id' in example and example['sent_id']:
+                lines.append(f"# sent_id = {example['sent_id']}")
+                sent_id_added = True
+        elif comment == "__TEXT__":
+            # Insert text at its original position
+            if 'text' in example and example['text']:
+                lines.append(f"# text = {example['text']}")
+                text_added = True
+        else:
+            # Regular comment
             lines.append(f"# {comment}")
-    
-    # Then add sent_id if present
-    if 'sent_id' in example and example['sent_id']:
+
+    # Fallback: if sent_id/text exist but weren't added via markers, add them now
+    # This handles cases where comments list is empty or missing markers
+    if not sent_id_added and 'sent_id' in example and example['sent_id']:
         lines.append(f"# sent_id = {example['sent_id']}")
-    
-    # Then add text if present
-    if 'text' in example and example['text']:
+    if not text_added and 'text' in example and example['text']:
         lines.append(f"# text = {example['text']}")
     
     # Parse MWT ranges
