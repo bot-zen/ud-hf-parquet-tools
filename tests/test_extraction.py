@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Tests for CoNLL-U extraction logic (MWT, empty nodes, metadata)."""
 
-import pytest
 
 # Import from pre-loaded module (via conftest.py)
 from generate_parquet import extract_examples_from_conllu

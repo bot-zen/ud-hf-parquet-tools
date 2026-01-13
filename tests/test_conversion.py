@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Tests for CoNLL-U conversion functions."""
 
-import pytest
 
 # Import from pre-loaded module (via conftest.py)
 from generate_parquet import conllu_dict_to_string, conllu_optional_field
@@ -25,6 +24,7 @@ class TestConlluDictToString:
     def test_multiple_items_dict(self):
         """Multiple items should preserve order and be joined with pipe."""
         from collections import OrderedDict
+
         result = conllu_dict_to_string(OrderedDict([("Number", "Sing"), ("Case", "Nom"), ("Gender", "Masc")]))
         assert result == "Number=Sing|Case=Nom|Gender=Masc"
 
@@ -67,6 +67,7 @@ class TestConlluOptionalField:
     def test_multiple_items_dict(self):
         """Multiple items should preserve order and be joined with pipe."""
         from collections import OrderedDict
+
         result = conllu_optional_field(OrderedDict([("Number", "Sing"), ("Case", "Nom")]))
         assert result == "Number=Sing|Case=Nom"
 
@@ -81,18 +82,22 @@ class TestConlluOptionalField:
     def test_feats_example(self):
         """Real-world FEATS example."""
         from collections import OrderedDict
-        feats_dict = OrderedDict([
-            ("Case", "Nom"),
-            ("Gender", "Masc"),
-            ("Number", "Sing"),
-            ("Person", "3"),
-        ])
+
+        feats_dict = OrderedDict(
+            [
+                ("Case", "Nom"),
+                ("Gender", "Masc"),
+                ("Number", "Sing"),
+                ("Person", "3"),
+            ]
+        )
         result = conllu_optional_field(feats_dict)
         assert result == "Case=Nom|Gender=Masc|Number=Sing|Person=3"
 
     def test_misc_example(self):
         """Real-world MISC example."""
         from collections import OrderedDict
+
         misc_dict = OrderedDict([("SpaceAfter", "No"), ("Translit", "abc")])
         result = conllu_optional_field(misc_dict)
         assert result == "SpaceAfter=No|Translit=abc"

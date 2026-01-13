@@ -5,15 +5,12 @@ This module converts CoNLL-U files from UD repositories into Parquet format
 for efficient loading with HuggingFace datasets.
 """
 
-import json
 import sys
-import traceback
 from pathlib import Path
 from typing import Any, Dict, List
 
 import conllu
 import datasets
-import yaml
 
 from .conllu_utils import (
     conllu_dict_to_string,
@@ -40,7 +37,7 @@ def extract_examples_from_conllu(filepath: str) -> List[Dict[str, Any]]:
         file_content = f.read()
 
     # Split into sentence blocks
-    sentence_blocks = file_content.split('\n\n')
+    sentence_blocks = file_content.split("\n\n")
 
     # Parse with conllu
     with open(filepath, "r", encoding="utf-8") as data_file:
@@ -74,59 +71,58 @@ def extract_examples_from_conllu(filepath: str) -> List[Dict[str, Any]]:
             # Per UD spec: MWTs can have ID, FORM, MISC, and optionally FEATS (for "Typo=Yes")
             mwts = []
             for token in sent:
-                if isinstance(token["id"], tuple) and len(token["id"]) == 3 and token["id"][1] == '-':
+                if isinstance(token["id"], tuple) and len(token["id"]) == 3 and token["id"][1] == "-":
                     # MWT line (e.g., (1, '-', 2) for "1-2")
                     mwt_id = f"{token['id'][0]}-{token['id'][2]}"
 
                     # Use raw fields if available (bypasses conllu parsing bugs)
                     if mwt_id in raw_fields:
-                        feats = raw_fields[mwt_id]['feats']
-                        misc = raw_fields[mwt_id]['misc']
+                        feats = raw_fields[mwt_id]["feats"]
+                        misc = raw_fields[mwt_id]["misc"]
                     else:
                         # Fallback to conllu parsed values
                         feats = conllu_optional_field(token["feats"], "MWT.FEATS", sent_id, is_feats=True)
                         misc = conllu_optional_field(token["misc"], "MWT.MISC", sent_id)
 
-                    mwts.append({
-                        "id": mwt_id,
-                        "form": token["form"],
-                        "feats": feats,
-                        "misc": misc
-                    })
+                    mwts.append({"id": mwt_id, "form": token["form"], "feats": feats, "misc": misc})
 
             # Extract Empty Nodes - tokens with decimal IDs like 22.1
             # These are represented as tuples: (22, '.', 1)
             empty_nodes = []
             for token in sent:
-                if isinstance(token["id"], tuple) and len(token["id"]) == 3 and token["id"][1] == '.':
+                if isinstance(token["id"], tuple) and len(token["id"]) == 3 and token["id"][1] == ".":
                     # Empty node (e.g., (22, '.', 1) for ID "22.1")
                     empty_node_id = f"{token['id'][0]}.{token['id'][2]}"
 
                     # Use raw fields if available (bypasses conllu parsing bugs)
                     if empty_node_id in raw_fields:
-                        xpos = raw_fields[empty_node_id]['xpos']
-                        feats = raw_fields[empty_node_id]['feats']
-                        deps = raw_fields[empty_node_id]['deps']
-                        misc = raw_fields[empty_node_id]['misc']
+                        xpos = raw_fields[empty_node_id]["xpos"]
+                        feats = raw_fields[empty_node_id]["feats"]
+                        deps = raw_fields[empty_node_id]["deps"]
+                        misc = raw_fields[empty_node_id]["misc"]
                     else:
                         # Fallback to conllu parsed values
                         xpos = token["xpos"] or None
-                        feats = conllu_dict_to_string(token["feats"], "FEATS", f"{sent_id}:{empty_node_id}", is_feats=True)
+                        feats = conllu_dict_to_string(
+                            token["feats"], "FEATS", f"{sent_id}:{empty_node_id}", is_feats=True
+                        )
                         deps = conllu_dict_to_string(token["deps"], "DEPS", f"{sent_id}:{empty_node_id}")
                         misc = conllu_dict_to_string(token["misc"], "MISC", f"{sent_id}:{empty_node_id}")
 
-                    empty_nodes.append({
-                        "id": empty_node_id,
-                        "form": token["form"],
-                        "lemma": token["lemma"] or "_",
-                        "upos": token["upos"] or "_",
-                        "xpos": xpos or "_",
-                        "feats": feats,
-                        "head": str(token["head"]) if token["head"] is not None else "_",
-                        "deprel": str(token["deprel"]) if token["deprel"] else "_",
-                        "deps": deps,
-                        "misc": misc
-                    })
+                    empty_nodes.append(
+                        {
+                            "id": empty_node_id,
+                            "form": token["form"],
+                            "lemma": token["lemma"] or "_",
+                            "upos": token["upos"] or "_",
+                            "xpos": xpos or "_",
+                            "feats": feats,
+                            "head": str(token["head"]) if token["head"] is not None else "_",
+                            "deprel": str(token["deprel"]) if token["deprel"] else "_",
+                            "deps": deps,
+                            "misc": misc,
+                        }
+                    )
 
             # Filter to syntactic words only (exclude MWTs and empty nodes)
             sent_filtered = sent.filter(id=lambda x: type(x) is int)
@@ -149,10 +145,10 @@ def extract_examples_from_conllu(filepath: str) -> List[Dict[str, Any]]:
 
                 # Use raw fields if available (bypasses conllu parsing bugs)
                 if token_id in raw_fields:
-                    xpos_list.append(raw_fields[token_id]['xpos'])
-                    feats_list.append(raw_fields[token_id]['feats'])
-                    deps_list.append(raw_fields[token_id]['deps'])
-                    misc_list.append(raw_fields[token_id]['misc'])
+                    xpos_list.append(raw_fields[token_id]["xpos"])
+                    feats_list.append(raw_fields[token_id]["feats"])
+                    deps_list.append(raw_fields[token_id]["deps"])
+                    misc_list.append(raw_fields[token_id]["misc"])
                 else:
                     # Fallback to conllu parsed values
                     xpos_list.append(conllu_optional_field(token["xpos"], "XPOS", sent_id))
@@ -191,7 +187,7 @@ def generate_parquet_for_treebank(
     ud_repos_dir: Path,
     output_dir: Path,
     verbose: bool = True,
-    overwrite: bool = False
+    overwrite: bool = False,
 ) -> bool:
     """
     Generate Parquet files for a single treebank.
@@ -265,46 +261,67 @@ def generate_parquet_for_treebank(
             continue
 
         # Define features
-        features = datasets.Features({
-            "sent_id": datasets.Value("string"),
-            "text": datasets.Value("string"),
-            "comments": datasets.Sequence(datasets.Value("string")),
-            "tokens": datasets.Sequence(datasets.Value("string")),
-            "lemmas": datasets.Sequence(datasets.Value("string")),
-            "upos": datasets.Sequence(
-                datasets.features.ClassLabel(
-                    names=[
-                        "NOUN", "PUNCT", "ADP", "NUM", "SYM", "SCONJ",
-                        "ADJ", "PART", "DET", "CCONJ", "PROPN", "PRON",
-                        "X", "_", "ADV", "INTJ", "VERB", "AUX",
-                    ]
-                )
-            ),
-            "xpos": datasets.Sequence(datasets.Value("string")),
-            "feats": datasets.Sequence(datasets.Value("string")),
-            "head": datasets.Sequence(datasets.Value("string")),
-            "deprel": datasets.Sequence(datasets.Value("string")),
-            "deps": datasets.Sequence(datasets.Value("string")),
-            "misc": datasets.Sequence(datasets.Value("string")),
-            "mwt": [{
-                "id": datasets.Value("string"),
-                "form": datasets.Value("string"),
-                "feats": datasets.Value("string"),
-                "misc": datasets.Value("string")
-            }],
-            "empty_nodes": [{
-                "id": datasets.Value("string"),
-                "form": datasets.Value("string"),
-                "lemma": datasets.Value("string"),
-                "upos": datasets.Value("string"),
-                "xpos": datasets.Value("string"),
-                "feats": datasets.Value("string"),
-                "head": datasets.Value("string"),
-                "deprel": datasets.Value("string"),
-                "deps": datasets.Value("string"),
-                "misc": datasets.Value("string")
-            }],
-        })
+        features = datasets.Features(
+            {
+                "sent_id": datasets.Value("string"),
+                "text": datasets.Value("string"),
+                "comments": datasets.Sequence(datasets.Value("string")),
+                "tokens": datasets.Sequence(datasets.Value("string")),
+                "lemmas": datasets.Sequence(datasets.Value("string")),
+                "upos": datasets.Sequence(
+                    datasets.features.ClassLabel(
+                        names=[
+                            "NOUN",
+                            "PUNCT",
+                            "ADP",
+                            "NUM",
+                            "SYM",
+                            "SCONJ",
+                            "ADJ",
+                            "PART",
+                            "DET",
+                            "CCONJ",
+                            "PROPN",
+                            "PRON",
+                            "X",
+                            "_",
+                            "ADV",
+                            "INTJ",
+                            "VERB",
+                            "AUX",
+                        ]
+                    )
+                ),
+                "xpos": datasets.Sequence(datasets.Value("string")),
+                "feats": datasets.Sequence(datasets.Value("string")),
+                "head": datasets.Sequence(datasets.Value("string")),
+                "deprel": datasets.Sequence(datasets.Value("string")),
+                "deps": datasets.Sequence(datasets.Value("string")),
+                "misc": datasets.Sequence(datasets.Value("string")),
+                "mwt": [
+                    {
+                        "id": datasets.Value("string"),
+                        "form": datasets.Value("string"),
+                        "feats": datasets.Value("string"),
+                        "misc": datasets.Value("string"),
+                    }
+                ],
+                "empty_nodes": [
+                    {
+                        "id": datasets.Value("string"),
+                        "form": datasets.Value("string"),
+                        "lemma": datasets.Value("string"),
+                        "upos": datasets.Value("string"),
+                        "xpos": datasets.Value("string"),
+                        "feats": datasets.Value("string"),
+                        "head": datasets.Value("string"),
+                        "deprel": datasets.Value("string"),
+                        "deps": datasets.Value("string"),
+                        "misc": datasets.Value("string"),
+                    }
+                ],
+            }
+        )
 
         # Create dataset from examples
         dataset = datasets.Dataset.from_list(all_examples, features=features)
@@ -333,4 +350,3 @@ def generate_parquet_for_treebank(
     except Exception as e:
         print(f"  Error saving Parquet files: {e}", file=sys.stderr)
         return False
-

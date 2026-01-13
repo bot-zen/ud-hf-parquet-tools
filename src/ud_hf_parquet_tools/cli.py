@@ -20,10 +20,10 @@ def generate_command(args):
     if not metadata_file.exists():
         print(f"Error: Metadata file not found: {metadata_file}", file=sys.stderr)
         return 1
-    
+
     with open(metadata_file, "r", encoding="utf-8") as f:
         metadata = json.load(f)
-    
+
     # Load blocked treebanks if provided
     blocked_treebanks = {}
     if args.blocked_treebanks:
@@ -33,7 +33,7 @@ def generate_command(args):
                 blocked_data = yaml.safe_load(f)
                 if blocked_data:
                     blocked_treebanks = {k: v for k, v in blocked_data.items() if v is not None}
-    
+
     verbose = args.verbose and not args.quiet
 
     if verbose:
@@ -42,7 +42,7 @@ def generate_command(args):
             print(f"Blocked treebanks: {len(blocked_treebanks)} ({', '.join(sorted(blocked_treebanks.keys()))})")
         print(f"Output directory: {args.output_dir}")
         print()
-    
+
     # Determine which treebanks to process
     if args.test:
         treebanks_to_process = ["fr_gsd", "en_ewt", "it_isdt"]
@@ -58,7 +58,7 @@ def generate_command(args):
         treebanks_to_process = sorted(metadata.keys())
         if verbose:
             print(f"Processing all {len(treebanks_to_process)} treebanks")
-    
+
     # Filter out blocked treebanks
     if blocked_treebanks:
         original_count = len(treebanks_to_process)
@@ -68,21 +68,21 @@ def generate_command(args):
             print(f"Skipping {skipped_count} blocked treebank(s) due to license restrictions")
             for blocked in sorted(blocked_treebanks.keys()):
                 if blocked in metadata:
-                    reason = blocked_treebanks[blocked].get('reason', 'Unknown')
-                    license_type = blocked_treebanks[blocked].get('license', 'Unknown')
+                    reason = blocked_treebanks[blocked].get("reason", "Unknown")
+                    license_type = blocked_treebanks[blocked].get("license", "Unknown")
                     print(f"  - {blocked}: {reason} (License: {license_type})")
-    
+
     if verbose:
         print()
-    
+
     # Process treebanks
     success_count = 0
     fail_count = 0
-    
+
     for i, name in enumerate(treebanks_to_process, 1):
         if verbose:
             print(f"[{i}/{len(treebanks_to_process)}] {name}")
-        
+
         try:
             success = generate_parquet_for_treebank(
                 name=name,
@@ -90,33 +90,34 @@ def generate_command(args):
                 ud_repos_dir=Path(args.ud_repos_dir),
                 output_dir=Path(args.output_dir),
                 verbose=verbose,
-                overwrite=args.overwrite
+                overwrite=args.overwrite,
             )
-            
+
             if success:
                 success_count += 1
             else:
                 fail_count += 1
-        
+
         except Exception as e:
             print(f"  Error: {e}", file=sys.stderr)
             import traceback
+
             traceback.print_exc()
             fail_count += 1
-        
+
         if verbose:
             print()
-    
+
     # Summary
     if verbose:
         print("=" * 60)
         print(f"Completed: {success_count} successful, {fail_count} failed")
-        
+
         output_path = Path(args.output_dir)
         if output_path.exists():
-            total_size = sum(f.stat().st_size for f in output_path.rglob('*.parquet'))
+            total_size = sum(f.stat().st_size for f in output_path.rglob("*.parquet"))
             print(f"Total output size: {total_size / 1024 / 1024:.2f} MB")
-    
+
     return 0 if fail_count == 0 else 1
 
 
@@ -144,10 +145,10 @@ def validate_command(args):
 
     with open(metadata_file, "r", encoding="utf-8") as f:
         metadata = json.load(f)
-    
+
     verbose = args.verbose and not args.quiet
     very_verbose = args.very_verbose
-    
+
     if verbose:
         print("=" * 60)
         print("Universal Dependencies Parquet Validation")
@@ -159,7 +160,7 @@ def validate_command(args):
             print(f"Source: HuggingFace Hub (revision={args.revision})")
         print(f"UD repos directory: {args.ud_repos_dir}")
         print()
-    
+
     # Determine which treebanks to validate
     if args.test:
         treebanks_to_validate = ["fr_gsd", "en_ewt", "it_isdt"]
@@ -175,16 +176,16 @@ def validate_command(args):
         treebanks_to_validate = sorted(metadata.keys())
         if verbose:
             print(f"Validating all {len(treebanks_to_validate)} treebanks")
-    
+
     # Validate treebanks
     success_count = 0
     fail_count = 0
     all_results = []
-    
+
     for i, name in enumerate(treebanks_to_validate, 1):
         if verbose:
             print(f"\n[{i}/{len(treebanks_to_validate)}] {name}")
-        
+
         try:
             results = validate_treebank(
                 name=name,
@@ -194,22 +195,23 @@ def validate_command(args):
                 use_local=args.local,
                 revision=args.revision,
                 verbose=verbose,
-                very_verbose=very_verbose
+                very_verbose=very_verbose,
             )
-            
+
             all_results.append(results)
-            
-            if results['success']:
+
+            if results["success"]:
                 success_count += 1
             else:
                 fail_count += 1
-        
+
         except Exception as e:
             print(f"  ERROR: {e}")
             import traceback
+
             traceback.print_exc()
             fail_count += 1
-    
+
     # Summary
     if verbose:
         print()
@@ -220,17 +222,17 @@ def validate_command(args):
         print(f"❌ Failed: {fail_count}")
         print(f"Total: {success_count + fail_count}")
 
-        total_sentences = sum(r['total_sentences'] for r in all_results)
-        total_errors = sum(r['total_errors'] for r in all_results)
+        total_sentences = sum(r["total_sentences"] for r in all_results)
+        total_errors = sum(r["total_errors"] for r in all_results)
 
         # Calculate metadata vs token errors
         total_metadata_errors = 0
         total_token_errors = 0
         for result in all_results:
-            for split_data in result.get('splits', {}).values():
+            for split_data in result.get("splits", {}).values():
                 if isinstance(split_data, dict):
-                    total_metadata_errors += split_data.get('metadata_errors', 0)
-                    total_token_errors += split_data.get('token_errors', 0)
+                    total_metadata_errors += split_data.get("metadata_errors", 0)
+                    total_token_errors += split_data.get("token_errors", 0)
 
         print(f"\nTotal sentences validated: {total_sentences:,}")
         print(f"Total errors found: {total_errors:,}")
@@ -245,7 +247,7 @@ def validate_command(args):
             print("⚠️  Only metadata differences found (may be formatting/order issues).")
         else:
             print("⚠️  VALIDATION FAILED: Token line differences found.")
-    
+
     return 0 if fail_count == 0 else 1
 
 
@@ -302,12 +304,12 @@ def compare_command(args):
                 metadata=metadata[name],
                 parquet_dir1=Path(args.parquet_dir1),
                 parquet_dir2=Path(args.parquet_dir2),
-                verbose=verbose
+                verbose=verbose,
             )
 
             all_results.append(results)
 
-            if results['success']:
+            if results["success"]:
                 match_count += 1
             else:
                 mismatch_count += 1
@@ -315,6 +317,7 @@ def compare_command(args):
         except Exception as e:
             print(f"  ERROR: {e}")
             import traceback
+
             traceback.print_exc()
             mismatch_count += 1
 
@@ -328,9 +331,9 @@ def compare_command(args):
         print(f"❌ Mismatched: {mismatch_count}")
         print(f"Total: {match_count + mismatch_count}")
 
-        total_splits = sum(r.get('total_splits', 0) for r in all_results)
-        total_matches = sum(r.get('total_matches', 0) for r in all_results)
-        total_mismatches = sum(r.get('total_mismatches', 0) for r in all_results)
+        total_splits = sum(r.get("total_splits", 0) for r in all_results)
+        total_matches = sum(r.get("total_matches", 0) for r in all_results)
+        total_mismatches = sum(r.get("total_mismatches", 0) for r in all_results)
 
         print(f"\nTotal splits compared: {total_splits:,}")
         print(f"Split matches: {total_matches:,}")
@@ -348,12 +351,11 @@ def compare_command(args):
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        prog="ud-hfp-tools",
-        description="Tools for generating and validating Universal Dependencies Parquet datasets"
+        prog="ud-hfp-tools", description="Tools for generating and validating Universal Dependencies Parquet datasets"
     )
-    
+
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
-    
+
     # Generate command
     gen_parser = subparsers.add_parser("generate", help="Generate Parquet files from CoNLL-U data")
     gen_parser.add_argument("--metadata", required=True, help="Path to metadata JSON file")
@@ -365,14 +367,18 @@ def main():
     gen_parser.add_argument("--treebanks", help="Comma-separated list of treebank names")
     gen_parser.add_argument("-v", "--verbose", action="store_true", default=True, help="Verbose output")
     gen_parser.add_argument("-q", "--quiet", action="store_true", help="Quiet mode")
-    
+
     # Validate command
     val_parser = subparsers.add_parser("validate", help="Validate Parquet files against CoNLL-U")
     val_parser.add_argument("--metadata", required=True, help="Path to metadata JSON file")
     val_parser.add_argument("--ud-repos-dir", default="UD_repos", help="Path to UD repositories directory")
     val_parser.add_argument("--parquet-dir", help="Path to parquet directory (implies --local)")
-    val_parser.add_argument("--local", action="store_true", help="Validate local files (default parquet dir: 'parquet')")
-    val_parser.add_argument("--revision", default="2.17", help="HuggingFace Hub revision (incompatible with --parquet-dir)")
+    val_parser.add_argument(
+        "--local", action="store_true", help="Validate local files (default parquet dir: 'parquet')"
+    )
+    val_parser.add_argument(
+        "--revision", default="2.17", help="HuggingFace Hub revision (incompatible with --parquet-dir)"
+    )
     val_parser.add_argument("--test", action="store_true", help="Test mode: validate 3 treebanks only")
     val_parser.add_argument("--treebanks", help="Comma-separated list of treebank names")
     val_parser.add_argument("-v", "--verbose", action="store_true", default=True, help="Verbose output")

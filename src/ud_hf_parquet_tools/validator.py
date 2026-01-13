@@ -5,10 +5,8 @@ This module validates Parquet files by comparing them with original CoNLL-U data
 """
 
 import difflib
-import json
-import sys
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 import pyarrow.parquet as pq
 from datasets import load_dataset
@@ -18,10 +16,10 @@ from .conllu_utils import example_to_conllu
 
 def normalize_conllu(text: str) -> str:
     """Normalize CoNLL-U text for comparison (strip trailing blank lines)."""
-    lines = text.strip().split('\n')
-    while lines and lines[-1] == '':
+    lines = text.strip().split("\n")
+    while lines and lines[-1] == "":
         lines.pop()
-    return '\n'.join(lines) + '\n'
+    return "\n".join(lines) + "\n"
 
 
 def validate_treebank_text(
@@ -30,7 +28,7 @@ def validate_treebank_text(
     parquet_dir: Path | str,
     ud_repos_dir: Path,
     verbose: bool = True,
-    very_verbose: bool = False
+    very_verbose: bool = False,
 ) -> Dict[str, Any]:
     """
     Validate a single treebank using text-based comparison with unified diff.
@@ -46,23 +44,17 @@ def validate_treebank_text(
     Returns:
         Validation results dictionary
     """
-    results = {
-        'name': name,
-        'splits': {},
-        'total_sentences': 0,
-        'total_errors': 0,
-        'success': True
-    }
+    results = {"name": name, "splits": {}, "total_sentences": 0, "total_errors": 0, "success": True}
 
     if verbose:
-        print(f"  Text-based comparison...")
+        print("  Text-based comparison...")
 
     # Check if parquet directory exists for local validation
     if isinstance(parquet_dir, Path):
         treebank_parquet_dir = parquet_dir / name
         if not treebank_parquet_dir.exists():
-            results['success'] = False
-            results['error'] = f"Parquet directory not found: {treebank_parquet_dir}"
+            results["success"] = False
+            results["error"] = f"Parquet directory not found: {treebank_parquet_dir}"
             if verbose:
                 print(f"    ERROR: {results['error']}")
             return results
@@ -80,21 +72,21 @@ def validate_treebank_text(
 
         try:
             # Load parquet dataset
-            ds = load_dataset('parquet', data_files={split_name: parquet_path})
+            ds = load_dataset("parquet", data_files={split_name: parquet_path})
             dataset = ds[split_name]
         except Exception as e:
-            results['success'] = False
-            results['splits'][split_name] = {
-                'error': f"Failed to load parquet: {e}",
-                'sentences': 0,
-                'errors': 0,
-                'metadata_errors': 0,
-                'token_errors': 0
+            results["success"] = False
+            results["splits"][split_name] = {
+                "error": f"Failed to load parquet: {e}",
+                "sentences": 0,
+                "errors": 0,
+                "metadata_errors": 0,
+                "token_errors": 0,
             }
             continue
 
         # Get UPOS names for ClassLabel conversion
-        upos_names = dataset.features['upos'].feature.names
+        upos_names = dataset.features["upos"].feature.names
 
         # Reconstruct all examples to CoNLL-U
         reconstructed_conllu = ""
@@ -105,12 +97,12 @@ def validate_treebank_text(
         original_conllu = ""
         files = split_data.get("files", [])
         if not files:
-            results['splits'][split_name] = {
-                'error': f"No files found in metadata",
-                'sentences': 0,
-                'errors': 0,
-                'metadata_errors': 0,
-                'token_errors': 0
+            results["splits"][split_name] = {
+                "error": "No files found in metadata",
+                "sentences": 0,
+                "errors": 0,
+                "metadata_errors": 0,
+                "token_errors": 0,
             }
             continue
 
@@ -128,19 +120,19 @@ def validate_treebank_text(
                 continue
 
             # Read original file
-            with open(full_path, 'r', encoding='utf-8') as f:
+            with open(full_path, "r", encoding="utf-8") as f:
                 original_conllu += f.read()
             files_found += 1
 
         # If no files were found, report error and skip comparison
         if files_found == 0:
-            results['success'] = False
-            results['splits'][split_name] = {
-                'error': f"Original files not found: {', '.join(missing_files)}",
-                'sentences': 0,
-                'errors': 0,
-                'metadata_errors': 0,
-                'token_errors': 0
+            results["success"] = False
+            results["splits"][split_name] = {
+                "error": f"Original files not found: {', '.join(missing_files)}",
+                "sentences": 0,
+                "errors": 0,
+                "metadata_errors": 0,
+                "token_errors": 0,
             }
             if verbose:
                 print(f"    ❌ {split_name}: Original files not found")
@@ -154,45 +146,47 @@ def validate_treebank_text(
 
         # Compare
         num_sentences = len(dataset)
-        results['total_sentences'] += num_sentences
+        results["total_sentences"] += num_sentences
 
         if original_normalized == reconstructed_normalized:
-            results['splits'][split_name] = {
-                'sentences': num_sentences,
-                'errors': 0,
-                'metadata_errors': 0,
-                'token_errors': 0,
-                'passed': True
+            results["splits"][split_name] = {
+                "sentences": num_sentences,
+                "errors": 0,
+                "metadata_errors": 0,
+                "token_errors": 0,
+                "passed": True,
             }
             if verbose:
                 print(f"    ✅ {split_name}: {num_sentences} sentences match perfectly")
         else:
-            results['success'] = False
+            results["success"] = False
 
             # Find differences (use n=1 for minimal context)
-            original_lines = original_normalized.split('\n')
-            reconstructed_lines = reconstructed_normalized.split('\n')
+            original_lines = original_normalized.split("\n")
+            reconstructed_lines = reconstructed_normalized.split("\n")
 
-            diff = list(difflib.unified_diff(
-                original_lines,
-                reconstructed_lines,
-                fromfile=f'original_{split_name}',
-                tofile=f'reconstructed_{split_name}',
-                lineterm='',
-                n=1  # Show only 1 line of context (instead of default 3)
-            ))
+            diff = list(
+                difflib.unified_diff(
+                    original_lines,
+                    reconstructed_lines,
+                    fromfile=f"original_{split_name}",
+                    tofile=f"reconstructed_{split_name}",
+                    lineterm="",
+                    n=1,  # Show only 1 line of context (instead of default 3)
+                )
+            )
 
             # Classify differences: metadata (# lines) vs token lines
             metadata_diffs = []
             token_diffs = []
             for line in diff:
                 # Skip diff headers (---, +++, @@)
-                if line.startswith(('---', '+++', '@@')):
+                if line.startswith(("---", "+++", "@@")):
                     continue
-                if line.startswith(('+', '-')):
+                if line.startswith(("+", "-")):
                     # Check if the diff line is about a metadata line (starts with #)
                     content = line[1:].strip()  # Remove +/- prefix
-                    if content.startswith('#'):
+                    if content.startswith("#"):
                         metadata_diffs.append(line)
                     else:
                         token_diffs.append(line)
@@ -200,28 +194,30 @@ def validate_treebank_text(
             num_metadata_errors = len(metadata_diffs)
             num_token_errors = len(token_diffs)
             num_diff_lines = num_metadata_errors + num_token_errors
-            results['total_errors'] += num_diff_lines
+            results["total_errors"] += num_diff_lines
 
-            results['splits'][split_name] = {
-                'sentences': num_sentences,
-                'errors': num_diff_lines,
-                'metadata_errors': num_metadata_errors,
-                'token_errors': num_token_errors,
-                'diff': diff,  # Store all diff lines for very_verbose mode
-                'passed': False
+            results["splits"][split_name] = {
+                "sentences": num_sentences,
+                "errors": num_diff_lines,
+                "metadata_errors": num_metadata_errors,
+                "token_errors": num_token_errors,
+                "diff": diff,  # Store all diff lines for very_verbose mode
+                "passed": False,
             }
 
             if verbose:
                 if num_token_errors == 0:
                     print(f"    ⚠️  {split_name}: {num_metadata_errors} metadata differences (tokens match perfectly)")
                 else:
-                    print(f"    ❌ {split_name}: {num_token_errors} token differences, {num_metadata_errors} metadata differences")
+                    print(
+                        f"    ❌ {split_name}: {num_token_errors} token differences, {num_metadata_errors} metadata differences"
+                    )
                 if very_verbose:
-                    print(f"       All differences:")
+                    print("       All differences:")
                     for line in diff:
                         print(f"         {line}")
                 else:
-                    print(f"       First differences (use -vv to see all):")
+                    print("       First differences (use -vv to see all):")
                     for line in diff[:20]:
                         print(f"         {line}")
                     if len(diff) > 20:
@@ -239,7 +235,7 @@ def validate_treebank(
     revision: str = "2.17",
     mode: str = "text",
     verbose: bool = True,
-    very_verbose: bool = False
+    very_verbose: bool = False,
 ) -> Dict[str, Any]:
     """
     Validate a single treebank.
@@ -267,23 +263,10 @@ def validate_treebank(
         parquet_dir = f"hf://datasets/commul/universal_dependencies@{revision}/parquet"
 
     # Run text-based validation (default and recommended)
-    if mode in ('text', 'both'):
-        results = validate_treebank_text(
-            name,
-            metadata,
-            parquet_dir,
-            ud_repos_dir,
-            verbose,
-            very_verbose
-        )
+    if mode in ("text", "both"):
+        results = validate_treebank_text(name, metadata, parquet_dir, ud_repos_dir, verbose, very_verbose)
     else:
-        results = {
-            'name': name,
-            'splits': {},
-            'total_sentences': 0,
-            'total_errors': 0,
-            'success': True
-        }
+        results = {"name": name, "splits": {}, "total_sentences": 0, "total_errors": 0, "success": True}
 
     # Note: field-by-field mode could be added here if needed
     # For now, text mode is the primary validation method as it tests
@@ -293,11 +276,7 @@ def validate_treebank(
 
 
 def compare_parquet_tables(
-    name: str,
-    metadata: Dict[str, Any],
-    parquet_dir1: Path,
-    parquet_dir2: Path,
-    verbose: bool = True
+    name: str, metadata: Dict[str, Any], parquet_dir1: Path, parquet_dir2: Path, verbose: bool = True
 ) -> Dict[str, Any]:
     """
     Compare two parquet outputs for a single treebank.
@@ -313,12 +292,12 @@ def compare_parquet_tables(
         Comparison results dictionary
     """
     results = {
-        'name': name,
-        'splits': {},
-        'total_splits': 0,
-        'total_matches': 0,
-        'total_mismatches': 0,
-        'success': True
+        "name": name,
+        "splits": {},
+        "total_splits": 0,
+        "total_matches": 0,
+        "total_mismatches": 0,
+        "success": True,
     }
 
     if verbose:
@@ -329,15 +308,15 @@ def compare_parquet_tables(
     treebank_dir2 = parquet_dir2 / name
 
     if not treebank_dir1.exists():
-        results['success'] = False
-        results['error'] = f"Directory not found: {treebank_dir1}"
+        results["success"] = False
+        results["error"] = f"Directory not found: {treebank_dir1}"
         if verbose:
             print(f"  ERROR: {results['error']}")
         return results
 
     if not treebank_dir2.exists():
-        results['success'] = False
-        results['error'] = f"Directory not found: {treebank_dir2}"
+        results["success"] = False
+        results["error"] = f"Directory not found: {treebank_dir2}"
         if verbose:
             print(f"  ERROR: {results['error']}")
         return results
@@ -347,27 +326,21 @@ def compare_parquet_tables(
         parquet_file1 = treebank_dir1 / f"{split_name}.parquet"
         parquet_file2 = treebank_dir2 / f"{split_name}.parquet"
 
-        results['total_splits'] += 1
+        results["total_splits"] += 1
 
         # Check if both files exist
         if not parquet_file1.exists():
-            results['success'] = False
-            results['splits'][split_name] = {
-                'error': f"File not found: {parquet_file1}",
-                'matched': False
-            }
-            results['total_mismatches'] += 1
+            results["success"] = False
+            results["splits"][split_name] = {"error": f"File not found: {parquet_file1}", "matched": False}
+            results["total_mismatches"] += 1
             if verbose:
                 print(f"  ❌ {split_name}: File not found in dir1")
             continue
 
         if not parquet_file2.exists():
-            results['success'] = False
-            results['splits'][split_name] = {
-                'error': f"File not found: {parquet_file2}",
-                'matched': False
-            }
-            results['total_mismatches'] += 1
+            results["success"] = False
+            results["splits"][split_name] = {"error": f"File not found: {parquet_file2}", "matched": False}
+            results["total_mismatches"] += 1
             if verbose:
                 print(f"  ❌ {split_name}: File not found in dir2")
             continue
@@ -379,37 +352,29 @@ def compare_parquet_tables(
 
             # Compare tables
             if table1.equals(table2):
-                results['splits'][split_name] = {
-                    'matched': True,
-                    'num_rows': len(table1)
-                }
-                results['total_matches'] += 1
+                results["splits"][split_name] = {"matched": True, "num_rows": len(table1)}
+                results["total_matches"] += 1
                 if verbose:
                     print(f"  ✅ {split_name}: Tables match ({len(table1)} rows)")
             else:
-                results['success'] = False
-                results['splits'][split_name] = {
-                    'matched': False,
-                    'num_rows1': len(table1),
-                    'num_rows2': len(table2),
-                    'schema_match': table1.schema.equals(table2.schema)
+                results["success"] = False
+                results["splits"][split_name] = {
+                    "matched": False,
+                    "num_rows1": len(table1),
+                    "num_rows2": len(table2),
+                    "schema_match": table1.schema.equals(table2.schema),
                 }
-                results['total_mismatches'] += 1
+                results["total_mismatches"] += 1
                 if verbose:
                     print(f"  ❌ {split_name}: Tables differ")
                     print(f"     Rows: {len(table1)} vs {len(table2)}")
                     print(f"     Schema match: {table1.schema.equals(table2.schema)}")
 
         except Exception as e:
-            results['success'] = False
-            results['splits'][split_name] = {
-                'error': f"Comparison failed: {e}",
-                'matched': False
-            }
-            results['total_mismatches'] += 1
+            results["success"] = False
+            results["splits"][split_name] = {"error": f"Comparison failed: {e}", "matched": False}
+            results["total_mismatches"] += 1
             if verbose:
                 print(f"  ❌ {split_name}: Error - {e}")
 
     return results
-
-

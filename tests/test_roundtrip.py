@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Tests for round-trip validation (CoNLL-U -> Parquet -> CoNLL-U)."""
 
-import pytest
 
 # Import from pre-loaded modules (via conftest.py)
 from generate_parquet import extract_examples_from_conllu

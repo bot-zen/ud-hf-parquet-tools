@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Tests for CoNLL-U reconstruction functions."""
 
-import pytest
 from io import StringIO
 
 # Import from pre-loaded module (via conftest.py)
@@ -54,12 +53,7 @@ class TestExampleToConllu:
             "deprel": ["det", "aux", "root"],
             "deps": [None, None, None],
             "misc": ["SpaceAfter=No", None, None],
-            "mwt": [{
-                "id": "1-2",
-                "form": "l'ai",
-                "feats": None,
-                "misc": None
-            }],
+            "mwt": [{"id": "1-2", "form": "l'ai", "feats": None, "misc": None}],
             "empty_nodes": [],
         }
 
@@ -96,18 +90,20 @@ class TestExampleToConllu:
             "deps": [None],
             "misc": [None],
             "mwt": [],
-            "empty_nodes": [{
-                "id": "1.1",
-                "form": "is",
-                "lemma": "be",
-                "upos": "AUX",
-                "xpos": "_",
-                "feats": "_",
-                "head": "1",
-                "deprel": "cop",
-                "deps": "_",
-                "misc": "_"
-            }],
+            "empty_nodes": [
+                {
+                    "id": "1.1",
+                    "form": "is",
+                    "lemma": "be",
+                    "upos": "AUX",
+                    "xpos": "_",
+                    "feats": "_",
+                    "head": "1",
+                    "deprel": "cop",
+                    "deps": "_",
+                    "misc": "_",
+                }
+            ],
         }
 
         result = example_to_conllu(example)
@@ -223,16 +219,38 @@ class TestWriteConllu:
 
     def test_write_to_stdout(self, capsys):
         """Writing to stdout should work correctly."""
+
         # Create mock dataset
         class MockDataset:
             def __init__(self, examples):
                 self.examples = examples
                 self.features = {
-                    "upos": type("ClassLabel", (), {
-                        "names": ["NOUN", "PUNCT", "ADP", "NUM", "SYM", "SCONJ",
-                                 "ADJ", "PART", "DET", "CCONJ", "PROPN", "PRON",
-                                 "X", "_", "ADV", "INTJ", "VERB", "AUX"]
-                    })()
+                    "upos": type(
+                        "ClassLabel",
+                        (),
+                        {
+                            "names": [
+                                "NOUN",
+                                "PUNCT",
+                                "ADP",
+                                "NUM",
+                                "SYM",
+                                "SCONJ",
+                                "ADJ",
+                                "PART",
+                                "DET",
+                                "CCONJ",
+                                "PROPN",
+                                "PRON",
+                                "X",
+                                "_",
+                                "ADV",
+                                "INTJ",
+                                "VERB",
+                                "AUX",
+                            ]
+                        },
+                    )()
                 }
 
             def __iter__(self):
@@ -264,15 +282,37 @@ class TestWriteConllu:
 
     def test_write_to_file(self, tmp_path):
         """Writing to file should work correctly."""
+
         class MockDataset:
             def __init__(self, examples):
                 self.examples = examples
                 self.features = {
-                    "upos": type("ClassLabel", (), {
-                        "names": ["NOUN", "PUNCT", "ADP", "NUM", "SYM", "SCONJ",
-                                 "ADJ", "PART", "DET", "CCONJ", "PROPN", "PRON",
-                                 "X", "_", "ADV", "INTJ", "VERB", "AUX"]
-                    })()
+                    "upos": type(
+                        "ClassLabel",
+                        (),
+                        {
+                            "names": [
+                                "NOUN",
+                                "PUNCT",
+                                "ADP",
+                                "NUM",
+                                "SYM",
+                                "SCONJ",
+                                "ADJ",
+                                "PART",
+                                "DET",
+                                "CCONJ",
+                                "PROPN",
+                                "PRON",
+                                "X",
+                                "_",
+                                "ADV",
+                                "INTJ",
+                                "VERB",
+                                "AUX",
+                            ]
+                        },
+                    )()
                 }
 
             def __iter__(self):
@@ -306,15 +346,37 @@ class TestWriteConllu:
 
     def test_write_to_buffer(self):
         """Writing to buffer should work correctly."""
+
         class MockDataset:
             def __init__(self, examples):
                 self.examples = examples
                 self.features = {
-                    "upos": type("ClassLabel", (), {
-                        "names": ["NOUN", "PUNCT", "ADP", "NUM", "SYM", "SCONJ",
-                                 "ADJ", "PART", "DET", "CCONJ", "PROPN", "PRON",
-                                 "X", "_", "ADV", "INTJ", "VERB", "AUX"]
-                    })()
+                    "upos": type(
+                        "ClassLabel",
+                        (),
+                        {
+                            "names": [
+                                "NOUN",
+                                "PUNCT",
+                                "ADP",
+                                "NUM",
+                                "SYM",
+                                "SCONJ",
+                                "ADJ",
+                                "PART",
+                                "DET",
+                                "CCONJ",
+                                "PROPN",
+                                "PRON",
+                                "X",
+                                "_",
+                                "ADV",
+                                "INTJ",
+                                "VERB",
+                                "AUX",
+                            ]
+                        },
+                    )()
                 }
 
             def __iter__(self):
