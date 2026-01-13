@@ -109,6 +109,8 @@ def validate_treebank_text(
             }
             continue
 
+        files_found = 0
+        missing_files = []
         for file_path in files:
             # Extract just the filename from the path
             filename = Path(file_path).name
@@ -117,17 +119,27 @@ def validate_treebank_text(
             full_path = ud_repos_dir / metadata["dirname"] / filename
 
             if not full_path.exists():
-                results['success'] = False
-                results['splits'][split_name] = {
-                    'error': f"Original file not found: {full_path}",
-                    'sentences': 0,
-                    'errors': 0
-                }
+                missing_files.append(str(full_path))
                 continue
 
             # Read original file
             with open(full_path, 'r', encoding='utf-8') as f:
                 original_conllu += f.read()
+            files_found += 1
+
+        # If no files were found, report error and skip comparison
+        if files_found == 0:
+            results['success'] = False
+            results['splits'][split_name] = {
+                'error': f"Original files not found: {', '.join(missing_files)}",
+                'sentences': 0,
+                'errors': 0
+            }
+            if verbose:
+                print(f"    ❌ {split_name}: Original files not found")
+                for missing in missing_files:
+                    print(f"       - {missing}")
+            continue
 
         # Normalize both for comparison
         original_normalized = normalize_conllu(original_conllu)
