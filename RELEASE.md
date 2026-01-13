@@ -126,11 +126,8 @@ Clean any previous builds and create new distribution packages:
 # Remove old builds
 rm -rf dist/ build/ *.egg-info
 
-# Install/upgrade build tools
-uv pip install --upgrade build twine
-
 # Build the package
-python -m build
+uv build
 ```
 
 This creates two files in the `dist/` directory:
@@ -143,7 +140,7 @@ Upload to TestPyPI first to verify everything works:
 
 ```bash
 # Upload to TestPyPI
-twine upload --repository testpypi dist/*
+uv publish --publish-url https://test.pypi.org/legacy/
 
 # Test installation from TestPyPI
 uv pip install --index-url https://test.pypi.org/simple/ \
@@ -162,12 +159,10 @@ Once verified, upload to the production PyPI:
 
 ```bash
 # Upload to PyPI
-twine upload dist/*
+uv publish
 ```
 
-When prompted:
-- **Username**: `__token__`
-- **Password**: Your PyPI API token (starts with `pypi-`)
+**Authentication**: `uv publish` will prompt for credentials or use stored tokens.
 
 **Getting a PyPI API token**:
 1. Go to https://pypi.org/manage/account/token/
@@ -177,8 +172,18 @@ When prompted:
 5. Copy the token (starts with `pypi-`)
 6. Store securely (you won't see it again)
 
-**Save token for reuse**:
+**Save token for reuse** (Option 1 - Environment variable):
+```bash
+export UV_PUBLISH_TOKEN=pypi-YOUR_TOKEN_HERE
+```
 
+**Save token for reuse** (Option 2 - keyring):
+```bash
+# uv uses the system keyring for secure storage
+# On first publish, it will save credentials automatically
+```
+
+**Save token for reuse** (Option 3 - .pypirc):
 Create `~/.pypirc`:
 ```ini
 [pypi]
@@ -264,18 +269,18 @@ If this library is used by other projects (e.g., the Universal Dependencies data
 
 ### Build Fails
 
-**Problem**: `python -m build` fails
+**Problem**: `uv build` fails
 
 **Solutions**:
 ```bash
-# Upgrade build tools
-uv pip install --upgrade build setuptools wheel
-
 # Clear cache
 rm -rf dist/ build/ *.egg-info __pycache__ .pytest_cache
 
+# Ensure uv is up to date
+uv self update
+
 # Try again
-python -m build
+uv build
 ```
 
 ### Upload Fails: "File already exists"
@@ -331,7 +336,7 @@ find . -type f -name "*.pyc" -delete
 grep "version = " pyproject.toml
 
 # Rebuild
-python -m build
+uv build
 
 # Verify built version
 unzip -p dist/ud_hf_parquet_tools-*.whl ud_hf_parquet_tools/__init__.py | grep version
@@ -360,13 +365,13 @@ git push origin vX.Y.Z
 
 # 5. Build
 rm -rf dist/ build/ *.egg-info
-python -m build
+uv build
 
 # 6. Test upload (optional)
-twine upload --repository testpypi dist/*
+uv publish --publish-url https://test.pypi.org/legacy/
 
 # 7. Production upload
-twine upload dist/*
+uv publish
 
 # 8. Verify
 uv pip install --upgrade ud-hf-parquet-tools==X.Y.Z
