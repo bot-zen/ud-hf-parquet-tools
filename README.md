@@ -137,6 +137,13 @@ Enhanced dependencies with decimal IDs like `22.1`:
 - Stored with tuple IDs like `(22, '.', 1)`
 - Full 10-field preservation including all annotations
 
+**For complete details**, see [CONLLU_PARSING.md](CONLLU_PARSING.md) which documents:
+- All parsing issues with examples from real treebanks
+- Affected treebank counts and statistics
+- Implementation strategies and code locations
+- Testing and validation procedures
+- Known limitations and their rationale
+
 ## Dataset Schema
 
 Generated Parquet files include:
@@ -170,6 +177,13 @@ Generated Parquet files include:
 ```
 
 ## Documentation
+
+- **[CONLLU_PARSING.md](CONLLU_PARSING.md)**: Comprehensive guide to CoNLL-U parsing issues
+  - All 7 parsing challenges with examples
+  - Affected treebank statistics
+  - Implementation details and code locations
+  - Testing and validation procedures
+  - 100% fidelity achievement documentation
 
 - **[RELEASE.md](RELEASE.md)**: Complete guide for publishing new releases
   - Pre-release checklist
