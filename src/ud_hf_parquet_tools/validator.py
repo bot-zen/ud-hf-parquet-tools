@@ -86,7 +86,9 @@ def validate_treebank_text(
             results['splits'][split_name] = {
                 'error': f"Failed to load parquet: {e}",
                 'sentences': 0,
-                'errors': 0
+                'errors': 0,
+                'metadata_errors': 0,
+                'token_errors': 0
             }
             continue
 
@@ -105,7 +107,9 @@ def validate_treebank_text(
             results['splits'][split_name] = {
                 'error': f"No files found in metadata",
                 'sentences': 0,
-                'errors': 0
+                'errors': 0,
+                'metadata_errors': 0,
+                'token_errors': 0
             }
             continue
 
@@ -133,7 +137,9 @@ def validate_treebank_text(
             results['splits'][split_name] = {
                 'error': f"Original files not found: {', '.join(missing_files)}",
                 'sentences': 0,
-                'errors': 0
+                'errors': 0,
+                'metadata_errors': 0,
+                'token_errors': 0
             }
             if verbose:
                 print(f"    ❌ {split_name}: Original files not found")
@@ -153,6 +159,8 @@ def validate_treebank_text(
             results['splits'][split_name] = {
                 'sentences': num_sentences,
                 'errors': 0,
+                'metadata_errors': 0,
+                'token_errors': 0,
                 'passed': True
             }
             if verbose:
@@ -173,18 +181,37 @@ def validate_treebank_text(
                 n=1  # Show only 1 line of context (instead of default 3)
             ))
 
-            num_diff_lines = len([l for l in diff if l.startswith('+') or l.startswith('-')])
+            # Classify differences: metadata (# lines) vs token lines
+            metadata_diffs = []
+            token_diffs = []
+            for line in diff:
+                if line.startswith('+') or line.startswith('-'):
+                    # Check if the diff line is about a metadata line (starts with #)
+                    content = line[1:].strip()  # Remove +/- prefix
+                    if content.startswith('#'):
+                        metadata_diffs.append(line)
+                    else:
+                        token_diffs.append(line)
+
+            num_metadata_errors = len(metadata_diffs)
+            num_token_errors = len(token_diffs)
+            num_diff_lines = num_metadata_errors + num_token_errors
             results['total_errors'] += num_diff_lines
 
             results['splits'][split_name] = {
                 'sentences': num_sentences,
                 'errors': num_diff_lines,
+                'metadata_errors': num_metadata_errors,
+                'token_errors': num_token_errors,
                 'diff': diff,  # Store all diff lines for very_verbose mode
                 'passed': False
             }
 
             if verbose:
-                print(f"    ❌ {split_name}: Found {num_diff_lines} different lines")
+                if num_token_errors == 0:
+                    print(f"    ⚠️  {split_name}: {num_metadata_errors} metadata differences (tokens match perfectly)")
+                else:
+                    print(f"    ❌ {split_name}: {num_token_errors} token differences, {num_metadata_errors} metadata differences")
                 if very_verbose:
                     print(f"       All differences:")
                     for line in diff:

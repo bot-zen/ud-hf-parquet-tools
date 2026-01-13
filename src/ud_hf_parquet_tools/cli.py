@@ -204,18 +204,32 @@ def validate_command(args):
         print(f"✅ Passed: {success_count}")
         print(f"❌ Failed: {fail_count}")
         print(f"Total: {success_count + fail_count}")
-        
+
         total_sentences = sum(r['total_sentences'] for r in all_results)
         total_errors = sum(r['total_errors'] for r in all_results)
-        
+
+        # Calculate metadata vs token errors
+        total_metadata_errors = 0
+        total_token_errors = 0
+        for result in all_results:
+            for split_data in result.get('splits', {}).values():
+                if isinstance(split_data, dict):
+                    total_metadata_errors += split_data.get('metadata_errors', 0)
+                    total_token_errors += split_data.get('token_errors', 0)
+
         print(f"\nTotal sentences validated: {total_sentences:,}")
         print(f"Total errors found: {total_errors:,}")
+        print(f"  - Token line errors: {total_token_errors:,}")
+        print(f"  - Metadata line errors: {total_metadata_errors:,}")
         print()
-        
+
         if fail_count == 0:
             print("🎉 SUCCESS: All parquet files validated successfully!")
+        elif total_token_errors == 0:
+            print("⚠️  All token lines match perfectly!")
+            print("⚠️  Only metadata differences found (may be formatting/order issues).")
         else:
-            print("⚠️  VALIDATION FAILED: Some treebanks have differences.")
+            print("⚠️  VALIDATION FAILED: Token line differences found.")
     
     return 0 if fail_count == 0 else 1
 
