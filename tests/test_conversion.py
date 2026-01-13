@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Tests for CoNLL-U conversion functions."""
 
-
 # Import from pre-loaded module (via conftest.py)
 from generate_parquet import conllu_dict_to_string, conllu_optional_field
 
