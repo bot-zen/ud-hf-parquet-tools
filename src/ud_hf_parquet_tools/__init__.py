@@ -5,7 +5,7 @@ This library provides both a Python API and CLI for converting Universal Depende
 CoNLL-U data to Parquet format and validating the conversion.
 """
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 __author__ = "Egon W. Stemle"
 __email__ = "egon.stemle@eurac.edu"
 

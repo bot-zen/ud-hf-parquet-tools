@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-02-12
+
+### Added
+- DuckDB-backed batch comment materialization API: `materialize_comment_markers_batch`
+- New dependency: `duckdb>=1.1.0`
+- Documentation:
+  - README.md TestPyPI badge
+
+### Changed
+- Exposed comment materialization helper in public package exports
+- Added tests for marker replacement, passthrough behavior, and order preservation
+
+### Fixed
+- DuckDB Arrow compatibility: handle both `pyarrow.Table` and
+  `pyarrow.RecordBatchReader` outputs when converting query results
+
 ## [1.1.0] - 2025-01-13
 
 ### Added
@@ -99,6 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Links
 
-[Unreleased]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bot-zen/ud-hf-parquet-tools/releases/tag/v1.0.0
