@@ -22,6 +22,7 @@ from .conllu_utils import (
     sort_feats_dict,
     write_conllu,
 )
+from .comment_materialization import materialize_comment_markers_batch
 from .generator import generate_parquet_for_treebank
 from .validator import normalize_conllu, validate_treebank, validate_treebank_text
 
@@ -48,4 +49,5 @@ __all__ = [
     "parse_misc",
     "sort_feats_dict",
     "write_conllu",
+    "materialize_comment_markers_batch",
 ]
