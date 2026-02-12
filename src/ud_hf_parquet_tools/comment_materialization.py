@@ -104,9 +104,12 @@ def materialize_comment_markers_batch(batch: Mapping[str, Any]) -> Dict[str, lis
     conn = _get_duckdb_connection()
     conn.register("batch_data", pa.Table.from_pydict(python_batch))
     try:
-        materialized = conn.sql(query).arrow().to_pydict()
+        arrow_result = conn.sql(query).arrow()
+        if hasattr(arrow_result, "to_pydict"):
+            materialized = arrow_result.to_pydict()
+        else:
+            materialized = arrow_result.read_all().to_pydict()
     finally:
         conn.unregister("batch_data")
 
     return materialized
-
