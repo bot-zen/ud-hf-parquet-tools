@@ -1,6 +1,6 @@
 [project]
 name = "ud-hf-parquet-tools"
-version = "1.2.0"
+version = "1.2.1"
 description = "Tools for generating and validating Universal Dependencies datasets in Parquet format for HuggingFace"
 authors = [
     {name = "Egon W. Stemle", email = "egon.stemle@eurac.edu"}

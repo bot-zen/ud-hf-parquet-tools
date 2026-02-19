@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-02-19
+
 ### Fixed
 - Make generated Parquet outputs reproducible by sorting split/file processing order
   and using stable `to_parquet` write settings (fixed batch size, CDC/page-index disabled).
@@ -119,7 +121,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Links
 
-[Unreleased]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/bot-zen/ud-hf-parquet-tools/releases/tag/v1.0.0
