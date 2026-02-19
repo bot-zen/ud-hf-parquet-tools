@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Make generated Parquet outputs reproducible by sorting split/file processing order
+  and using stable `to_parquet` write settings (fixed batch size, CDC/page-index disabled).
+
 ## [1.2.0] - 2026-02-12
 
 ### Added

@@ -19,6 +19,13 @@ from .conllu_utils import (
     extract_raw_fields_from_sentence,
 )
 
+# Use stable write parameters to keep Parquet bytes reproducible across reruns.
+PARQUET_WRITE_BATCH_SIZE = 10_000
+PARQUET_WRITER_KWARGS = {
+    "use_content_defined_chunking": False,
+    "write_page_index": False,
+}
+
 
 def extract_examples_from_conllu(filepath: str) -> List[Dict[str, Any]]:
     """
@@ -210,7 +217,7 @@ def generate_parquet_for_treebank(
     # Check if all parquet files already exist
     if not overwrite:
         expected_files = []
-        for split_name in metadata.get("splits", {}).keys():
+        for split_name in sorted(metadata.get("splits", {}).keys()):
             parquet_path = treebank_output_dir / f"{split_name}.parquet"
             expected_files.append((split_name, parquet_path))
 
@@ -227,8 +234,9 @@ def generate_parquet_for_treebank(
     # Process each split
     dataset_dict = {}
 
-    for split_name, split_data in metadata.get("splits", {}).items():
-        files = split_data.get("files", [])
+    for split_name in sorted(metadata.get("splits", {}).keys()):
+        split_data = metadata["splits"][split_name]
+        files = sorted(split_data.get("files", []))
         if not files:
             continue
 
@@ -339,9 +347,14 @@ def generate_parquet_for_treebank(
 
     try:
         # Save as Parquet files
-        for split_name, dataset in dataset_dict_obj.items():
+        for split_name in sorted(dataset_dict_obj.keys()):
+            dataset = dataset_dict_obj[split_name]
             parquet_path = treebank_output_dir / f"{split_name}.parquet"
-            dataset.to_parquet(parquet_path)
+            dataset.to_parquet(
+                parquet_path,
+                batch_size=PARQUET_WRITE_BATCH_SIZE,
+                **PARQUET_WRITER_KWARGS,
+            )
             if verbose:
                 print(f"    Saved {split_name}.parquet ({parquet_path.stat().st_size / 1024 / 1024:.2f} MB)")
 
