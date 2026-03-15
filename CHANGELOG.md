@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-03-15
+
 ### Added
 - `generate` command options for stale parquet control:
   - `--check-extra`: detect unexpected parquet artifacts and fail
@@ -151,7 +153,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Links
 
-[Unreleased]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.2.3...HEAD
+[1.2.3]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.2.2...v1.2.3
 [1.2.2]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/bot-zen/ud-hf-parquet-tools/compare/v1.1.0...v1.2.0
