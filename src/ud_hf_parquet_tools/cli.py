@@ -4,13 +4,120 @@ Command-line interface for UD-HF-Parquet-Tools.
 
 import argparse
 import json
+import shutil
 import sys
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Dict, Set
 
 import yaml
 
 from .generator import generate_parquet_for_treebank
 from .validator import compare_parquet_tables, validate_treebank
+
+
+@dataclass
+class ExtraParquetEntries:
+    """Extra entries found under parquet output directory."""
+
+    extra_treebank_dirs: list[Path]
+    extra_split_files: list[Path]
+    extra_other_entries: list[Path]
+
+    def has_entries(self) -> bool:
+        return bool(self.extra_treebank_dirs or self.extra_split_files or self.extra_other_entries)
+
+    def total_count(self) -> int:
+        return len(self.extra_treebank_dirs) + len(self.extra_split_files) + len(self.extra_other_entries)
+
+
+def _expected_split_files(metadata: Dict[str, dict], treebanks: list[str]) -> Dict[str, Set[str]]:
+    """Map each treebank to expected split parquet filenames."""
+    expected: Dict[str, Set[str]] = {}
+    for treebank in treebanks:
+        splits = metadata[treebank].get("splits", {})
+        expected[treebank] = {f"{split_name}.parquet" for split_name in splits.keys()}
+    return expected
+
+
+def _scan_extra_parquet_entries(
+    output_dir: Path,
+    expected_splits_by_treebank: Dict[str, Set[str]],
+    full_scope: bool,
+) -> ExtraParquetEntries:
+    """
+    Scan parquet output for unexpected entries.
+
+    Scope behavior:
+    - full_scope=True: scan entire output directory; unknown treebank dirs are extras
+    - full_scope=False: only scan selected treebank dirs; unknown dirs are ignored
+    """
+    extra_treebank_dirs: list[Path] = []
+    extra_split_files: list[Path] = []
+    extra_other_entries: list[Path] = []
+
+    if not output_dir.exists():
+        return ExtraParquetEntries(extra_treebank_dirs, extra_split_files, extra_other_entries)
+
+    # Root-level files are never expected outputs from this tool.
+    for root_file in sorted(p for p in output_dir.iterdir() if p.is_file()):
+        extra_other_entries.append(root_file)
+
+    for entry in sorted(p for p in output_dir.iterdir() if p.is_dir()):
+        treebank = entry.name
+        if treebank not in expected_splits_by_treebank:
+            if full_scope:
+                extra_treebank_dirs.append(entry)
+            continue
+
+        expected_files = expected_splits_by_treebank[treebank]
+        for child in sorted(entry.iterdir()):
+            if child.is_file():
+                if child.name.endswith(".parquet"):
+                    if child.name not in expected_files:
+                        extra_split_files.append(child)
+                else:
+                    extra_other_entries.append(child)
+            else:
+                extra_other_entries.append(child)
+
+    return ExtraParquetEntries(extra_treebank_dirs, extra_split_files, extra_other_entries)
+
+
+def _prune_extra_parquet_entries(entries: ExtraParquetEntries) -> None:
+    """Remove extra parquet entries detected by _scan_extra_parquet_entries."""
+    for path in entries.extra_split_files + entries.extra_other_entries:
+        if path.is_dir():
+            shutil.rmtree(path)
+        elif path.exists():
+            path.unlink()
+
+    for treebank_dir in entries.extra_treebank_dirs:
+        if treebank_dir.exists():
+            shutil.rmtree(treebank_dir)
+
+
+def _print_extra_parquet_summary(entries: ExtraParquetEntries, prefix: str = "") -> None:
+    """Print a compact summary of extra parquet entries."""
+    if not entries.has_entries():
+        print(f"{prefix}No extra parquet entries detected.")
+        return
+
+    print(
+        f"{prefix}Found {entries.total_count()} extra parquet entries: "
+        f"{len(entries.extra_treebank_dirs)} treebank dirs, "
+        f"{len(entries.extra_split_files)} split files, "
+        f"{len(entries.extra_other_entries)} other entries"
+    )
+    preview = (
+        entries.extra_treebank_dirs
+        + entries.extra_split_files
+        + entries.extra_other_entries
+    )
+    for path in preview[:12]:
+        print(f"{prefix}  - {path}")
+    if len(preview) > 12:
+        print(f"{prefix}  ... and {len(preview) - 12} more")
 
 
 def generate_command(args):
@@ -74,6 +181,34 @@ def generate_command(args):
 
     if verbose:
         print()
+
+    output_path = Path(args.output_dir)
+    full_scope_scan = not args.test and not args.treebanks
+    expected_splits = _expected_split_files(metadata, treebanks_to_process)
+    extra_entries = _scan_extra_parquet_entries(output_path, expected_splits, full_scope_scan)
+
+    if args.prune_extra and extra_entries.has_entries():
+        if verbose:
+            _print_extra_parquet_summary(extra_entries, prefix="[prune] ")
+            print("[prune] Removing extra parquet entries...")
+        _prune_extra_parquet_entries(extra_entries)
+        extra_entries = _scan_extra_parquet_entries(output_path, expected_splits, full_scope_scan)
+        if verbose:
+            _print_extra_parquet_summary(extra_entries, prefix="[prune] ")
+            print()
+
+    if args.check_extra:
+        if extra_entries.has_entries():
+            _print_extra_parquet_summary(extra_entries, prefix="[check] ")
+            print(
+                "[check] Failing due to extra parquet entries. "
+                "Use --prune-extra to remove them automatically.",
+                file=sys.stderr,
+            )
+            return 1
+        elif verbose:
+            _print_extra_parquet_summary(extra_entries, prefix="[check] ")
+            print()
 
     # Process treebanks
     success_count = 0
@@ -363,6 +498,22 @@ def main():
     gen_parser.add_argument("--output-dir", default="parquet", help="Output directory for Parquet files")
     gen_parser.add_argument("--blocked-treebanks", help="Path to blocked treebanks YAML file")
     gen_parser.add_argument("--overwrite", action="store_true", help="Overwrite existing parquet files (default: skip)")
+    gen_parser.add_argument(
+        "--check-extra",
+        action="store_true",
+        help=(
+            "Fail if extra parquet entries are detected before generation. "
+            "On full runs scans entire output dir; on subset runs scans selected treebank dirs."
+        ),
+    )
+    gen_parser.add_argument(
+        "--prune-extra",
+        action="store_true",
+        help=(
+            "Delete extra parquet entries before generation. "
+            "On full runs prunes entire output dir; on subset runs prunes selected treebank dirs."
+        ),
+    )
     gen_parser.add_argument("--test", action="store_true", help="Test mode: process 3 treebanks only")
     gen_parser.add_argument("--treebanks", help="Comma-separated list of treebank names")
     gen_parser.add_argument("-v", "--verbose", action="store_true", default=True, help="Verbose output")

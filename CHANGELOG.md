@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `generate` command options for stale parquet control:
+  - `--check-extra`: detect unexpected parquet artifacts and fail
+  - `--prune-extra`: remove unexpected parquet artifacts before generation
+
+### Changed
+- Extra artifact scanning is scope-aware:
+  - full runs scan/prune the entire output tree
+  - subset/test runs scan/prune only selected treebank directories
+
+### Added
+- CLI tests for extra artifact scan/prune behavior:
+  - full-scope detection of stale treebank directories and split files
+  - subset-scope behavior that ignores unselected treebank directories
+  - pruning behavior that preserves expected outputs
+
 ## [1.2.2] - 2026-03-15
 
 ### Fixed
