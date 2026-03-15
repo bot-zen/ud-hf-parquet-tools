@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Avoid unnecessary parquet rewrites during regeneration:
+  - When `--overwrite` is used and newly written bytes differ, preserve the
+    existing file if both parquet tables are logically identical.
+  - With partial outputs and no `--overwrite`, skip already existing split
+    files and regenerate only missing splits.
+
+### Added
+- Determinism regression tests for overwrite behavior:
+  - preserve-existing-on-equal-table
+  - missing-split regeneration without rewriting existing splits
+
 ## [1.2.1] - 2026-02-19
 
 ### Fixed

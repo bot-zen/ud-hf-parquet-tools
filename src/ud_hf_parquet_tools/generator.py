@@ -11,6 +11,7 @@ from typing import Any, Dict, List
 
 import conllu
 import datasets
+import pyarrow.parquet as pq
 
 from .conllu_utils import (
     conllu_dict_to_string,
@@ -25,6 +26,28 @@ PARQUET_WRITER_KWARGS = {
     "use_content_defined_chunking": False,
     "write_page_index": False,
 }
+
+
+def _files_are_byte_identical(path_a: Path, path_b: Path, chunk_size: int = 1024 * 1024) -> bool:
+    """Return True when both files have identical bytes."""
+    if path_a.stat().st_size != path_b.stat().st_size:
+        return False
+
+    with path_a.open("rb") as fa, path_b.open("rb") as fb:
+        while True:
+            a = fa.read(chunk_size)
+            b = fb.read(chunk_size)
+            if a != b:
+                return False
+            if not a:
+                return True
+
+
+def _parquet_tables_are_equal(path_a: Path, path_b: Path) -> bool:
+    """Return True when both parquet files contain logically identical Arrow tables."""
+    table_a = pq.read_table(path_a)
+    table_b = pq.read_table(path_b)
+    return table_a.schema.equals(table_b.schema) and table_a.equals(table_b)
 
 
 def extract_examples_from_conllu(filepath: str) -> List[Dict[str, Any]]:
@@ -236,6 +259,14 @@ def generate_parquet_for_treebank(
 
     for split_name in sorted(metadata.get("splits", {}).keys()):
         split_data = metadata["splits"][split_name]
+        parquet_path = treebank_output_dir / f"{split_name}.parquet"
+
+        # With partial outputs and no --overwrite, regenerate only missing splits.
+        if parquet_path.exists() and not overwrite:
+            if verbose:
+                print(f"  - {split_name}: exists, skipping (use --overwrite to regenerate)")
+            continue
+
         files = sorted(split_data.get("files", []))
         if not files:
             continue
@@ -350,11 +381,42 @@ def generate_parquet_for_treebank(
         for split_name in sorted(dataset_dict_obj.keys()):
             dataset = dataset_dict_obj[split_name]
             parquet_path = treebank_output_dir / f"{split_name}.parquet"
+            tmp_path = parquet_path.with_name(f".{parquet_path.name}.tmp")
+            if tmp_path.exists():
+                tmp_path.unlink()
+
             dataset.to_parquet(
-                parquet_path,
+                tmp_path,
                 batch_size=PARQUET_WRITE_BATCH_SIZE,
                 **PARQUET_WRITER_KWARGS,
             )
+
+            if parquet_path.exists():
+                if _files_are_byte_identical(parquet_path, tmp_path):
+                    tmp_path.unlink()
+                    if verbose:
+                        print(
+                            f"    Unchanged {split_name}.parquet "
+                            f"({parquet_path.stat().st_size / 1024 / 1024:.2f} MB)"
+                        )
+                    continue
+
+                # Preserve existing bytes when data are logically identical.
+                # This avoids repository churn when writer internals differ.
+                try:
+                    if _parquet_tables_are_equal(parquet_path, tmp_path):
+                        tmp_path.unlink()
+                        if verbose:
+                            print(
+                                f"    Preserved existing {split_name}.parquet "
+                                "(table-equal, byte-different)"
+                            )
+                        continue
+                except Exception:
+                    # Fall back to replacing file when table comparison fails.
+                    pass
+
+            tmp_path.replace(parquet_path)
             if verbose:
                 print(f"    Saved {split_name}.parquet ({parquet_path.stat().st_size / 1024 / 1024:.2f} MB)")
 
