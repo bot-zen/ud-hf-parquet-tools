@@ -208,10 +208,14 @@ def extract_raw_fields_from_sentence(sentence_text: str) -> Dict[str, Dict[str, 
         token_id = fields[0]
         xpos = fields[4] if fields[4] != "_" else None
         feats = fields[5] if fields[5] != "_" else None
+        try:
+            head = int(fields[6])
+        except (ValueError, IndexError):
+            head = None
         deps = fields[8] if fields[8] != "_" else None
         misc = fields[9] if fields[9] != "_" else None
 
-        raw_fields[token_id] = {"xpos": xpos, "feats": feats, "deps": deps, "misc": misc}
+        raw_fields[token_id] = {"xpos": xpos, "feats": feats, "head": head, "deps": deps, "misc": misc}
 
     return raw_fields
 
@@ -264,7 +268,7 @@ def extract_raw_comments_from_sentence(sentence_text: str) -> Tuple[List[str], s
     return comments, sent_id, text
 
 
-def example_to_conllu(example: Dict[str, Any], upos_names: List[str] | None = None) -> str:
+def example_to_conllu(example: Dict[str, Any]) -> str:
     """
     Convert a dataset example back to CoNLL-U format.
 
@@ -332,7 +336,7 @@ def example_to_conllu(example: Dict[str, Any], upos_names: List[str] | None = No
                 empty_node.get("upos", "_"),
                 empty_node.get("xpos") or "_",
                 empty_node.get("feats") or "_",
-                empty_node.get("head", "_"),
+                ("_" if empty_node.get("head") is None else str(empty_node["head"])),
                 empty_node.get("deprel", "_"),
                 empty_node.get("deps") or "_",
                 empty_node.get("misc") or "_",
@@ -349,12 +353,7 @@ def example_to_conllu(example: Dict[str, Any], upos_names: List[str] | None = No
             misc = mwt.get("misc") or "_"
             lines.append(f"{mwt['id']}\t{mwt['form']}\t_\t_\t_\t{feats}\t_\t_\t_\t{misc}")
 
-        # Convert UPOS from ClassLabel index to string if needed
-        upos_value = example["upos"][i]
-        if isinstance(upos_value, int) and upos_names:
-            upos_str = upos_names[upos_value]
-        else:
-            upos_str = str(upos_value)
+        upos_str = str(example["upos"][i])
 
         # Regular token line
         fields = [
@@ -364,7 +363,7 @@ def example_to_conllu(example: Dict[str, Any], upos_names: List[str] | None = No
             str(upos_str),
             str(example["xpos"][i] or "_"),
             str(example["feats"][i] or "_"),
-            str(example["head"][i]),
+            "_" if example["head"][i] is None else str(example["head"][i]),
             str(example["deprel"][i]),
             str(example["deps"][i] or "_"),
             str(example["misc"][i] or "_"),
@@ -381,7 +380,7 @@ def example_to_conllu(example: Dict[str, Any], upos_names: List[str] | None = No
                     empty_node.get("upos", "_"),
                     empty_node.get("xpos") or "_",
                     empty_node.get("feats") or "_",
-                    empty_node.get("head", "_"),
+                    ("_" if empty_node.get("head") is None else str(empty_node["head"])),
                     empty_node.get("deprel", "_"),
                     empty_node.get("deps") or "_",
                     empty_node.get("misc") or "_",
@@ -453,25 +452,19 @@ def parse_misc(misc_str: str | None) -> Dict[str, str]:
     return dict(kv.split("=", 1) for kv in misc_str.split("|") if "=" in kv)
 
 
-def write_conllu(dataset, output_file=None, upos_names=None):
+def write_conllu(dataset, output_file=None):
     """
     Write a dataset to CoNLL-U format.
 
     Args:
         dataset: HuggingFace dataset with UD examples
         output_file: Output file path, None for file-like object, "-" for stdout
-        upos_names: Optional list of UPOS label names for ClassLabel conversion
 
     Returns:
         StringIO object if output_file is None, otherwise None
     """
     from io import StringIO
     import sys
-
-    # Get upos_names from dataset features if not provided
-    if upos_names is None and hasattr(dataset, "features"):
-        if hasattr(dataset.features.get("upos", None), "feature"):
-            upos_names = dataset.features["upos"].feature.names
 
     # Determine output target
     if output_file is None:
@@ -494,7 +487,7 @@ def write_conllu(dataset, output_file=None, upos_names=None):
     try:
         # Write each example as CoNLL-U
         for example in dataset:
-            conllu_text = example_to_conllu(example, upos_names)
+            conllu_text = example_to_conllu(example)
             output.write(conllu_text)
 
         # Return StringIO buffer if requested

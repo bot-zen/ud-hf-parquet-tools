@@ -85,13 +85,10 @@ def validate_treebank_text(
             }
             continue
 
-        # Get UPOS names for ClassLabel conversion
-        upos_names = dataset.features["upos"].feature.names
-
         # Reconstruct all examples to CoNLL-U
         reconstructed_conllu = ""
         for example in dataset:
-            reconstructed_conllu += example_to_conllu(example, upos_names)
+            reconstructed_conllu += example_to_conllu(example)
 
         # Load original CoNLL-U files
         original_conllu = ""

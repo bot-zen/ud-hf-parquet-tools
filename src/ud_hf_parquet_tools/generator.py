@@ -5,6 +5,7 @@ This module converts CoNLL-U files from UD repositories into Parquet format
 for efficient loading with HuggingFace datasets.
 """
 
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -147,7 +148,7 @@ def extract_examples_from_conllu(filepath: str) -> List[Dict[str, Any]]:
                             "upos": token["upos"] or "_",
                             "xpos": xpos or "_",
                             "feats": feats,
-                            "head": str(token["head"]) if token["head"] is not None else "_",
+                            "head": token["head"] if isinstance(token["head"], int) else None,
                             "deprel": str(token["deprel"]) if token["deprel"] else "_",
                             "deps": deps,
                             "misc": misc,
@@ -170,6 +171,7 @@ def extract_examples_from_conllu(filepath: str) -> List[Dict[str, Any]]:
             deps_list = []
             misc_list = []
 
+            head_list = []
             for token in sent_filtered:
                 token_id = str(token["id"])
 
@@ -177,18 +179,17 @@ def extract_examples_from_conllu(filepath: str) -> List[Dict[str, Any]]:
                 if token_id in raw_fields:
                     xpos_list.append(raw_fields[token_id]["xpos"])
                     feats_list.append(raw_fields[token_id]["feats"])
+                    head_list.append(raw_fields[token_id]["head"])
                     deps_list.append(raw_fields[token_id]["deps"])
                     misc_list.append(raw_fields[token_id]["misc"])
                 else:
                     # Fallback to conllu parsed values
                     xpos_list.append(conllu_optional_field(token["xpos"], "XPOS", sent_id))
                     feats_list.append(conllu_optional_field(token["feats"], "FEATS", sent_id, is_feats=True))
+                    head_list.append(token["head"] if isinstance(token["head"], int) else None)
                     deps_list.append(conllu_optional_field(token["deps"], "DEPS", sent_id))
                     misc_list.append(conllu_optional_field(token["misc"], "MISC", sent_id))
 
-            # Create example with proper types per UD specification:
-            # - Required fields (FORM, LEMMA, UPOS, HEAD, DEPREL): always string
-            # - Optional fields (XPOS, FEATS, DEPS, MISC): None when unspecified
             example = {
                 "sent_id": sent_id,
                 "text": text,
@@ -198,7 +199,7 @@ def extract_examples_from_conllu(filepath: str) -> List[Dict[str, Any]]:
                 "upos": [token["upos"] for token in sent_filtered],
                 "xpos": xpos_list,
                 "feats": feats_list,
-                "head": [str(token["head"]) if token["head"] is not None else "_" for token in sent_filtered],
+                "head": head_list,
                 "deprel": [str(token["deprel"]) if token["deprel"] else "_" for token in sent_filtered],
                 "deps": deps_list,
                 "misc": misc_list,
@@ -209,6 +210,41 @@ def extract_examples_from_conllu(filepath: str) -> List[Dict[str, Any]]:
             examples.append(example)
 
     return examples
+
+
+UD_GITHUB_BASE = "https://github.com/UniversalDependencies"
+
+
+def _ensure_treebank_dir(ud_repos_dir: Path, dirname: str, verbose: bool = False) -> bool:
+    """Clone the treebank repo from GitHub if its directory is missing.
+
+    Returns True if the directory exists (or was cloned successfully), False on failure.
+    """
+    treebank_dir = ud_repos_dir / dirname
+    if treebank_dir.exists():
+        return True
+
+    clone_url = f"{UD_GITHUB_BASE}/{dirname}"
+    if verbose:
+        print(f"  Directory not found: {treebank_dir}")
+        print(f"  Cloning from {clone_url} ...")
+
+    ud_repos_dir.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run(
+        ["git", "clone", "--depth", "1", clone_url, str(treebank_dir)],
+        capture_output=not verbose,
+        text=True,
+    )
+
+    if result.returncode != 0:
+        print(f"  Error: git clone failed for {dirname}", file=sys.stderr)
+        if result.stderr:
+            print(f"  {result.stderr.strip()}", file=sys.stderr)
+        return False
+
+    if verbose:
+        print(f"  Cloned {dirname} successfully.")
+    return True
 
 
 def generate_parquet_for_treebank(
@@ -253,6 +289,10 @@ def generate_parquet_for_treebank(
 
     if verbose:
         print(f"Processing {name}...")
+
+    # Ensure the treebank directory exists, cloning if necessary
+    if not _ensure_treebank_dir(ud_repos_dir, metadata.get("dirname", name), verbose):
+        return False
 
     # Process each split
     dataset_dict = {}
@@ -307,33 +347,10 @@ def generate_parquet_for_treebank(
                 "comments": datasets.Sequence(datasets.Value("string")),
                 "tokens": datasets.Sequence(datasets.Value("string")),
                 "lemmas": datasets.Sequence(datasets.Value("string")),
-                "upos": datasets.Sequence(
-                    datasets.features.ClassLabel(
-                        names=[
-                            "NOUN",
-                            "PUNCT",
-                            "ADP",
-                            "NUM",
-                            "SYM",
-                            "SCONJ",
-                            "ADJ",
-                            "PART",
-                            "DET",
-                            "CCONJ",
-                            "PROPN",
-                            "PRON",
-                            "X",
-                            "_",
-                            "ADV",
-                            "INTJ",
-                            "VERB",
-                            "AUX",
-                        ]
-                    )
-                ),
+                "upos": datasets.Sequence(datasets.Value("string")),
                 "xpos": datasets.Sequence(datasets.Value("string")),
                 "feats": datasets.Sequence(datasets.Value("string")),
-                "head": datasets.Sequence(datasets.Value("string")),
+                "head": datasets.Sequence(datasets.Value("uint16")),
                 "deprel": datasets.Sequence(datasets.Value("string")),
                 "deps": datasets.Sequence(datasets.Value("string")),
                 "misc": datasets.Sequence(datasets.Value("string")),
@@ -353,7 +370,7 @@ def generate_parquet_for_treebank(
                         "upos": datasets.Value("string"),
                         "xpos": datasets.Value("string"),
                         "feats": datasets.Value("string"),
-                        "head": datasets.Value("string"),
+                        "head": datasets.Value("uint16"),
                         "deprel": datasets.Value("string"),
                         "deps": datasets.Value("string"),
                         "misc": datasets.Value("string"),
