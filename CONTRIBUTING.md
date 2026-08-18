@@ -6,7 +6,7 @@ Thank you for considering contributing to this project!
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/egon-stemle/ud-hf-parquet-tools
+git clone https://github.com/bot-zen/ud-hf-parquet-tools
 cd ud-hf-parquet-tools
 ```
 
@@ -75,9 +75,7 @@ ud-hf-parquet-tools/
 │   ├── generator.py         # Parquet generation
 │   ├── validator.py         # Validation logic
 │   └── cli.py               # Command-line interface
-├── tests/                   # Test suite
-├── examples/                # Usage examples
-└── docs/                    # Documentation (future)
+└── tests/                   # Test suite
 ```
 
 ## Reporting Issues

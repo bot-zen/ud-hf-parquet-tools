@@ -11,7 +11,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/egon-stemle/ud-hf-parquet-tools
+git clone https://github.com/bot-zen/ud-hf-parquet-tools
 cd ud-hf-parquet-tools
 
 # Create virtual environment and install
@@ -24,7 +24,7 @@ uv pip install -e .
 
 ```bash
 # Clone the repository
-git clone https://github.com/egon-stemle/ud-hf-parquet-tools
+git clone https://github.com/bot-zen/ud-hf-parquet-tools
 cd ud-hf-parquet-tools
 
 # Create virtual environment and install
@@ -33,7 +33,7 @@ source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -e .
 ```
 
-### Option 3: Install from PyPI (future)
+### Option 3: Install from PyPI
 
 ```bash
 # With uv
@@ -54,14 +54,16 @@ ud-hfp-tools --help
 You should see:
 
 ```
-usage: ud-hfp-tools [-h] {generate,validate} ...
+usage: ud-hfp-tools [-h] {generate,validate,compare} ...
 
 Tools for generating and validating Universal Dependencies Parquet datasets
 
 positional arguments:
-  {generate,validate}  Command to run
-    generate           Generate Parquet files from CoNLL-U data
-    validate           Validate Parquet files against CoNLL-U
+  {generate,validate,compare}
+                        Command to run
+    generate            Generate Parquet files from CoNLL-U data
+    validate            Validate Parquet files against CoNLL-U
+    compare             Compare two Parquet outputs
 ```
 
 ## Development Installation
@@ -91,7 +93,7 @@ The library requires:
 
 Development dependencies:
 
-- `pytest>=7.0.0` - Testing
+- `pytest>=9.0.2` - Testing
 - `pytest-cov>=4.0.0` - Coverage
 - `ruff>=0.1.0` - Linting
 
@@ -124,5 +126,4 @@ python --version
 ## Next Steps
 
 - Read the [README.md](README.md) for usage examples
-- Check [examples/](examples/) for code samples
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for development guide

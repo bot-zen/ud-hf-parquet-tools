@@ -203,7 +203,7 @@ Generated Parquet files include:
 Clone and install with development dependencies:
 
 ```bash
-git clone https://github.com/egon-stemle/ud-hf-parquet-tools
+git clone https://github.com/bot-zen/ud-hf-parquet-tools
 cd ud-hf-parquet-tools
 uv venv
 source .venv/bin/activate  # On Windows: .venv\Scripts\activate

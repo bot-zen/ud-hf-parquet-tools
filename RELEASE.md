@@ -21,6 +21,7 @@ Before creating a new release, ensure the following are complete:
 - [ ] All tests pass: `pytest`
 - [ ] Code is formatted: `ruff format src/ tests/`
 - [ ] Linting passes: `ruff check src/ tests/`
+- [ ] Package builds: `uv build`
 - [ ] No outstanding bugs or critical issues
 - [ ] All new features have tests
 - [ ] Documentation is up to date
@@ -63,12 +64,16 @@ We use [Semantic Versioning](https://semver.org/) (MAJOR.MINOR.PATCH):
 
 ### Step 1: Update Version Number
 
-Edit `pyproject.toml` and update the version:
+Edit `pyproject.toml` and `src/ud_hf_parquet_tools/__init__.py` and update the version:
 
 ```toml
 [project]
 name = "ud-hf-parquet-tools"
 version = "X.Y.Z"  # Update this line
+```
+
+```python
+__version__ = "X.Y.Z"  # Update this line
 ```
 
 ### Step 2: Update CHANGELOG.md
@@ -94,7 +99,7 @@ Create or update `CHANGELOG.md` following [Keep a Changelog](https://keepachange
 ### Step 3: Commit Version Changes
 
 ```bash
-git add pyproject.toml CHANGELOG.md
+git add pyproject.toml src/ud_hf_parquet_tools/__init__.py CHANGELOG.md
 git commit -m "Bump version to X.Y.Z"
 ```
 
@@ -346,7 +351,7 @@ unzip -p dist/ud_hf_parquet_tools-*.whl ud_hf_parquet_tools/__init__.py | grep v
 
 ```bash
 # 1. Update version
-vim pyproject.toml  # Change version = "X.Y.Z"
+vim pyproject.toml src/ud_hf_parquet_tools/__init__.py  # Change version to "X.Y.Z"
 
 # 2. Update changelog
 vim CHANGELOG.md    # Add release notes
@@ -357,7 +362,7 @@ ruff format src/ tests/
 ruff check src/ tests/
 
 # 4. Commit and tag
-git add pyproject.toml CHANGELOG.md
+git add pyproject.toml src/ud_hf_parquet_tools/__init__.py CHANGELOG.md
 git commit -m "Bump version to X.Y.Z"
 git tag -a vX.Y.Z -m "Release version X.Y.Z"
 git push origin main
