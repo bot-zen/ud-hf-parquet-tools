@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Store regular-token `upos` values as plain strings instead of HuggingFace
+  `ClassLabel` indices in generated parquet files.
+- Store regular-token `head` values as 16-bit integers instead of strings in generated
+  parquet files.
+- Keep CoNLL-U reconstruction compatible with old parquet outputs that used
+  `ClassLabel` UPOS indices.
+
+### Fixed
+- Reject invalid or out-of-range regular-token HEAD values during extraction
+  instead of writing them into parquet as string placeholders.
+
 ## [1.2.3] - 2026-03-15
 
 ### Added

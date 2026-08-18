@@ -21,7 +21,7 @@ class TestExampleToConllu:
             "upos": ["INTJ", "NOUN", "PUNCT"],
             "xpos": [None, None, None],
             "feats": [None, None, None],
-            "head": ["0", "1", "1"],
+            "head": [0, 1, 1],
             "deprel": ["root", "vocative", "punct"],
             "deps": [None, None, None],
             "misc": [None, None, None],
@@ -49,7 +49,7 @@ class TestExampleToConllu:
             "upos": ["DET", "AUX", "VERB"],
             "xpos": [None, None, None],
             "feats": [None, None, None],
-            "head": ["2", "3", "0"],
+            "head": [2, 3, 0],
             "deprel": ["det", "aux", "root"],
             "deps": [None, None, None],
             "misc": ["SpaceAfter=No", None, None],
@@ -85,7 +85,7 @@ class TestExampleToConllu:
             "upos": ["NOUN"],
             "xpos": [None],
             "feats": [None],
-            "head": ["0"],
+            "head": [0],
             "deprel": ["root"],
             "deps": [None],
             "misc": [None],
@@ -134,7 +134,7 @@ class TestExampleToConllu:
             "upos": ["NOUN"],
             "xpos": [None],
             "feats": [None],
-            "head": ["0"],
+            "head": [0],
             "deprel": ["root"],
             "deps": [None],
             "misc": [None],
@@ -176,7 +176,7 @@ class TestExampleToConllu:
             "upos": ["NOUN"],
             "xpos": ["NN"],
             "feats": ["Number=Sing"],
-            "head": ["0"],
+            "head": [0],
             "deprel": ["root"],
             "deps": ["4:nsubj"],
             "misc": ["SpaceAfter=No"],
@@ -199,7 +199,7 @@ class TestExampleToConllu:
             "upos": ["NOUN"],
             "xpos": [None],
             "feats": [None],
-            "head": ["0"],
+            "head": [0],
             "deprel": ["root"],
             "deps": [None],
             "misc": [None],
@@ -212,6 +212,29 @@ class TestExampleToConllu:
         # Should end with one blank line (two newlines at end)
         assert result.endswith("\n\n")
         assert not result.endswith("\n\n\n")
+
+    def test_legacy_classlabel_upos_reconstruction(self):
+        """Old parquet outputs with ClassLabel UPOS indices should still reconstruct."""
+        example = {
+            "sent_id": "test-007",
+            "text": "Test",
+            "comments": [],
+            "tokens": ["Test"],
+            "lemmas": ["test"],
+            "upos": [0],
+            "xpos": [None],
+            "feats": [None],
+            "head": [0],
+            "deprel": ["root"],
+            "deps": [None],
+            "misc": [None],
+            "mwt": [],
+            "empty_nodes": [],
+        }
+
+        result = example_to_conllu(example, upos_names=["NOUN"])
+
+        assert "1\tTest\ttest\tNOUN\t_\t_\t0\troot\t_\t_" in result
 
 
 class TestWriteConllu:
@@ -265,7 +288,7 @@ class TestWriteConllu:
             "upos": [0],  # NOUN
             "xpos": [None],
             "feats": [None],
-            "head": ["0"],
+            "head": [0],
             "deprel": ["root"],
             "deps": [None],
             "misc": [None],
@@ -327,7 +350,7 @@ class TestWriteConllu:
             "upos": [0],
             "xpos": [None],
             "feats": [None],
-            "head": ["0"],
+            "head": [0],
             "deprel": ["root"],
             "deps": [None],
             "misc": [None],
@@ -391,7 +414,7 @@ class TestWriteConllu:
             "upos": [0],
             "xpos": [None],
             "feats": [None],
-            "head": ["0"],
+            "head": [0],
             "deprel": ["root"],
             "deps": [None],
             "misc": [None],

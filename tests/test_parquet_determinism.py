@@ -4,15 +4,14 @@ from hashlib import sha256
 from pathlib import Path
 
 import pyarrow.parquet as pq
+import pyarrow as pa
 
 from ud_hf_parquet_tools.generator import generate_parquet_for_treebank
 
 
 def _write_conllu(path: Path, sent_id: str, token: str) -> None:
     path.write_text(
-        f"# sent_id = {sent_id}\n"
-        f"# text = {token}\n"
-        f"1\t{token}\t{token.lower()}\tNOUN\t_\t_\t0\troot\t_\t_\n\n",
+        f"# sent_id = {sent_id}\n# text = {token}\n1\t{token}\t{token.lower()}\tNOUN\t_\t_\t0\troot\t_\t_\n\n",
         encoding="utf-8",
     )
 
@@ -41,25 +40,41 @@ def test_generate_parquet_is_bit_reproducible_with_reordered_files(tmp_path: Pat
     out_a = tmp_path / "out_a"
     out_b = tmp_path / "out_b"
 
-    assert generate_parquet_for_treebank(
-        "xx_test", metadata_a, ud_repos_dir, out_a, verbose=False, overwrite=True
-    )
+    assert generate_parquet_for_treebank("xx_test", metadata_a, ud_repos_dir, out_a, verbose=False, overwrite=True)
     parquet_a = out_a / "xx_test" / "train.parquet"
     hash_a = _sha256(parquet_a)
 
-    assert generate_parquet_for_treebank(
-        "xx_test", metadata_b, ud_repos_dir, out_b, verbose=False, overwrite=True
-    )
+    assert generate_parquet_for_treebank("xx_test", metadata_b, ud_repos_dir, out_b, verbose=False, overwrite=True)
     parquet_b = out_b / "xx_test" / "train.parquet"
     hash_b = _sha256(parquet_b)
 
     assert hash_a == hash_b
 
     # Re-running overwrite with unchanged inputs should remain byte-identical.
-    assert generate_parquet_for_treebank(
-        "xx_test", metadata_a, ud_repos_dir, out_a, verbose=False, overwrite=True
-    )
+    assert generate_parquet_for_treebank("xx_test", metadata_a, ud_repos_dir, out_a, verbose=False, overwrite=True)
     assert _sha256(parquet_a) == hash_a
+
+
+def test_generated_parquet_uses_plain_upos_and_integer_head(tmp_path: Path) -> None:
+    """UPOS should be strings, and regular-token HEAD should be integers."""
+    ud_repos_dir = tmp_path / "UD_repos"
+    treebank_dir = ud_repos_dir / "UD_Test-Treebank"
+    treebank_dir.mkdir(parents=True)
+    _write_conllu(treebank_dir / "train.conllu", sent_id="tr-1", token="Train")
+
+    metadata = {
+        "dirname": "UD_Test-Treebank",
+        "splits": {"train": {"files": ["train.conllu"]}},
+    }
+    out = tmp_path / "out"
+
+    assert generate_parquet_for_treebank("xx_test", metadata, ud_repos_dir, out, verbose=False, overwrite=True)
+    table = pq.read_table(out / "xx_test" / "train.parquet")
+
+    assert table.schema.field("upos").type.value_type == pa.string()
+    assert table.schema.field("head").type.value_type == pa.int16()
+    assert table.column("upos").to_pylist() == [["NOUN"]]
+    assert table.column("head").to_pylist() == [[0]]
 
 
 def test_overwrite_preserves_existing_bytes_when_table_is_equal(tmp_path: Path) -> None:
@@ -77,9 +92,7 @@ def test_overwrite_preserves_existing_bytes_when_table_is_equal(tmp_path: Path) 
     }
     out = tmp_path / "out"
 
-    assert generate_parquet_for_treebank(
-        "xx_test", metadata, ud_repos_dir, out, verbose=False, overwrite=True
-    )
+    assert generate_parquet_for_treebank("xx_test", metadata, ud_repos_dir, out, verbose=False, overwrite=True)
     parquet_path = out / "xx_test" / "train.parquet"
 
     # Rewrite with different encoding parameters but identical logical table.
@@ -87,9 +100,7 @@ def test_overwrite_preserves_existing_bytes_when_table_is_equal(tmp_path: Path) 
     pq.write_table(table, parquet_path, compression="gzip")
     legacy_hash = _sha256(parquet_path)
 
-    assert generate_parquet_for_treebank(
-        "xx_test", metadata, ud_repos_dir, out, verbose=False, overwrite=True
-    )
+    assert generate_parquet_for_treebank("xx_test", metadata, ud_repos_dir, out, verbose=False, overwrite=True)
     assert _sha256(parquet_path) == legacy_hash
 
 
@@ -111,9 +122,7 @@ def test_without_overwrite_missing_split_does_not_rewrite_existing_splits(tmp_pa
     }
     out = tmp_path / "out"
 
-    assert generate_parquet_for_treebank(
-        "xx_test", metadata, ud_repos_dir, out, verbose=False, overwrite=True
-    )
+    assert generate_parquet_for_treebank("xx_test", metadata, ud_repos_dir, out, verbose=False, overwrite=True)
     train_path = out / "xx_test" / "train.parquet"
     test_path = out / "xx_test" / "test.parquet"
     train_hash_before = _sha256(train_path)
@@ -121,8 +130,6 @@ def test_without_overwrite_missing_split_does_not_rewrite_existing_splits(tmp_pa
     # Simulate interrupted run: test split missing, train split already present.
     test_path.unlink()
 
-    assert generate_parquet_for_treebank(
-        "xx_test", metadata, ud_repos_dir, out, verbose=False, overwrite=False
-    )
+    assert generate_parquet_for_treebank("xx_test", metadata, ud_repos_dir, out, verbose=False, overwrite=False)
     assert _sha256(train_path) == train_hash_before
     assert test_path.exists()

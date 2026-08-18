@@ -468,10 +468,12 @@ def write_conllu(dataset, output_file=None, upos_names=None):
     from io import StringIO
     import sys
 
-    # Get upos_names from dataset features if not provided
+    # Get upos_names from dataset features if not provided. New outputs store
+    # UPOS strings directly; this remains for old ClassLabel parquet outputs.
     if upos_names is None and hasattr(dataset, "features"):
-        if hasattr(dataset.features.get("upos", None), "feature"):
-            upos_names = dataset.features["upos"].feature.names
+        upos_feature = dataset.features.get("upos", None)
+        inner_feature = getattr(upos_feature, "feature", None)
+        upos_names = getattr(inner_feature, "names", None)
 
     # Determine output target
     if output_file is None:

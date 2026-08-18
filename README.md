@@ -156,10 +156,10 @@ Generated Parquet files include:
     "comments": [str],           # Metadata comments (ordered, with duplicates)
     "tokens": [str],             # Word forms (syntactic words only)
     "lemmas": [str],             # Lemmas
-    "upos": [str],               # Universal POS tags (ClassLabel)
+    "upos": [str],               # Universal POS tags
     "xpos": [str],               # Language-specific POS
     "feats": [str],              # Morphological features
-    "head": [str],               # Dependency heads
+    "head": [int],               # Dependency heads for regular tokens
     "deprel": [str],             # Dependency relations
     "deps": [str],               # Enhanced dependencies
     "misc": [str],               # Miscellaneous annotations

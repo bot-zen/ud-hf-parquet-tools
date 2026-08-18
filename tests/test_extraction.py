@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Tests for CoNLL-U extraction logic (MWT, empty nodes, metadata)."""
 
+import pytest
+
 # Import from pre-loaded module (via conftest.py)
 from generate_parquet import extract_examples_from_conllu
 
@@ -244,9 +246,22 @@ class TestOptionalFieldHandling:
         examples = extract_examples_from_conllu(str(test_file))
         example = examples[0]
 
-        # Required fields should be strings
+        # Required text fields should be strings; HEAD is a regular-token integer.
         assert example["tokens"][0] == "Test"
         assert example["lemmas"][0] == "test"
         assert example["upos"][0] == "NOUN"
-        assert example["head"][0] == "0"
+        assert example["head"][0] == 0
         assert example["deprel"][0] == "root"
+
+    def test_regular_token_head_must_be_integer(self, tmp_path):
+        """Regular-token HEAD values must be integers in the parquet schema."""
+        conllu_content = """# sent_id = 1
+# text = Test
+1	Test	test	NOUN	_	_	_	root	_	_
+
+"""
+        test_file = tmp_path / "test.conllu"
+        test_file.write_text(conllu_content)
+
+        with pytest.raises(ValueError, match="Invalid HEAD for regular token 1:1"):
+            extract_examples_from_conllu(str(test_file))

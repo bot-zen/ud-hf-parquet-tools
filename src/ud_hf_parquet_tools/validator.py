@@ -14,6 +14,13 @@ from datasets import load_dataset
 from .conllu_utils import example_to_conllu
 
 
+def _get_upos_names(dataset) -> list[str] | None:
+    """Return ClassLabel names for old parquet outputs, or None for string UPOS."""
+    feature = dataset.features.get("upos") if hasattr(dataset, "features") else None
+    inner_feature = getattr(feature, "feature", None)
+    return getattr(inner_feature, "names", None)
+
+
 def normalize_conllu(text: str) -> str:
     """Normalize CoNLL-U text for comparison (strip trailing blank lines)."""
     lines = text.strip().split("\n")
@@ -85,8 +92,8 @@ def validate_treebank_text(
             }
             continue
 
-        # Get UPOS names for ClassLabel conversion
-        upos_names = dataset.features["upos"].feature.names
+        # Old parquet outputs used ClassLabel for UPOS; new outputs store strings directly.
+        upos_names = _get_upos_names(dataset)
 
         # Reconstruct all examples to CoNLL-U
         reconstructed_conllu = ""
@@ -260,7 +267,7 @@ def validate_treebank(
 
     # Construct parquet path if not using local files
     if not use_local:
-        parquet_dir = f"hf://datasets/commul/universal_dependencies@{revision}/parquet"
+        parquet_dir = f"hf://datasets/universal-dependencies/universal_dependencies@{revision}/parquet"
 
     # Run text-based validation (default and recommended)
     if mode in ("text", "both"):

@@ -28,6 +28,20 @@ PARQUET_WRITER_KWARGS = {
 }
 
 
+def _regular_head_to_int(value: Any, sent_id: str, token_id: str) -> int:
+    """Return a regular-token HEAD as int; regular CoNLL-U tokens must not use '_'."""
+    if value is None or value == "_":
+        raise ValueError(f"Invalid HEAD for regular token {sent_id}:{token_id}: {value!r}")
+    try:
+        head = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Invalid HEAD for regular token {sent_id}:{token_id}: {value!r}") from exc
+
+    if not 0 <= head <= 32767:
+        raise ValueError(f"HEAD out of int16 range for regular token {sent_id}:{token_id}: {value!r}")
+    return head
+
+
 def _files_are_byte_identical(path_a: Path, path_b: Path, chunk_size: int = 1024 * 1024) -> bool:
     """Return True when both files have identical bytes."""
     if path_a.stat().st_size != path_b.stat().st_size:
@@ -187,8 +201,9 @@ def extract_examples_from_conllu(filepath: str) -> List[Dict[str, Any]]:
                     misc_list.append(conllu_optional_field(token["misc"], "MISC", sent_id))
 
             # Create example with proper types per UD specification:
-            # - Required fields (FORM, LEMMA, UPOS, HEAD, DEPREL): always string
-            # - Optional fields (XPOS, FEATS, DEPS, MISC): None when unspecified
+            # - Regular-token HEAD is an integer; empty-node HEAD remains string because it may be "_".
+            # - Required text fields (FORM, LEMMA, UPOS, DEPREL): always string.
+            # - Optional fields (XPOS, FEATS, DEPS, MISC): None when unspecified.
             example = {
                 "sent_id": sent_id,
                 "text": text,
@@ -198,7 +213,7 @@ def extract_examples_from_conllu(filepath: str) -> List[Dict[str, Any]]:
                 "upos": [token["upos"] for token in sent_filtered],
                 "xpos": xpos_list,
                 "feats": feats_list,
-                "head": [str(token["head"]) if token["head"] is not None else "_" for token in sent_filtered],
+                "head": [_regular_head_to_int(token["head"], sent_id, str(token["id"])) for token in sent_filtered],
                 "deprel": [str(token["deprel"]) if token["deprel"] else "_" for token in sent_filtered],
                 "deps": deps_list,
                 "misc": misc_list,
@@ -307,33 +322,10 @@ def generate_parquet_for_treebank(
                 "comments": datasets.Sequence(datasets.Value("string")),
                 "tokens": datasets.Sequence(datasets.Value("string")),
                 "lemmas": datasets.Sequence(datasets.Value("string")),
-                "upos": datasets.Sequence(
-                    datasets.features.ClassLabel(
-                        names=[
-                            "NOUN",
-                            "PUNCT",
-                            "ADP",
-                            "NUM",
-                            "SYM",
-                            "SCONJ",
-                            "ADJ",
-                            "PART",
-                            "DET",
-                            "CCONJ",
-                            "PROPN",
-                            "PRON",
-                            "X",
-                            "_",
-                            "ADV",
-                            "INTJ",
-                            "VERB",
-                            "AUX",
-                        ]
-                    )
-                ),
+                "upos": datasets.Sequence(datasets.Value("string")),
                 "xpos": datasets.Sequence(datasets.Value("string")),
                 "feats": datasets.Sequence(datasets.Value("string")),
-                "head": datasets.Sequence(datasets.Value("string")),
+                "head": datasets.Sequence(datasets.Value("int16")),
                 "deprel": datasets.Sequence(datasets.Value("string")),
                 "deps": datasets.Sequence(datasets.Value("string")),
                 "misc": datasets.Sequence(datasets.Value("string")),
@@ -396,8 +388,7 @@ def generate_parquet_for_treebank(
                     tmp_path.unlink()
                     if verbose:
                         print(
-                            f"    Unchanged {split_name}.parquet "
-                            f"({parquet_path.stat().st_size / 1024 / 1024:.2f} MB)"
+                            f"    Unchanged {split_name}.parquet ({parquet_path.stat().st_size / 1024 / 1024:.2f} MB)"
                         )
                     continue
 
@@ -407,10 +398,7 @@ def generate_parquet_for_treebank(
                     if _parquet_tables_are_equal(parquet_path, tmp_path):
                         tmp_path.unlink()
                         if verbose:
-                            print(
-                                f"    Preserved existing {split_name}.parquet "
-                                "(table-equal, byte-different)"
-                            )
+                            print(f"    Preserved existing {split_name}.parquet (table-equal, byte-different)")
                         continue
                 except Exception:
                     # Fall back to replacing file when table comparison fails.
