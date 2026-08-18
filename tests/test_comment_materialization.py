@@ -46,4 +46,3 @@ def test_materialize_comment_markers_without_comments_passthrough():
 
     materialized = materialize_comment_markers_batch(batch)
     assert materialized == batch
-

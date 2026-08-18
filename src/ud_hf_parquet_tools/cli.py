@@ -109,11 +109,7 @@ def _print_extra_parquet_summary(entries: ExtraParquetEntries, prefix: str = "")
         f"{len(entries.extra_split_files)} split files, "
         f"{len(entries.extra_other_entries)} other entries"
     )
-    preview = (
-        entries.extra_treebank_dirs
-        + entries.extra_split_files
-        + entries.extra_other_entries
-    )
+    preview = entries.extra_treebank_dirs + entries.extra_split_files + entries.extra_other_entries
     for path in preview[:12]:
         print(f"{prefix}  - {path}")
     if len(preview) > 12:
@@ -201,8 +197,7 @@ def generate_command(args):
         if extra_entries.has_entries():
             _print_extra_parquet_summary(extra_entries, prefix="[check] ")
             print(
-                "[check] Failing due to extra parquet entries. "
-                "Use --prune-extra to remove them automatically.",
+                "[check] Failing due to extra parquet entries. Use --prune-extra to remove them automatically.",
                 file=sys.stderr,
             )
             return 1

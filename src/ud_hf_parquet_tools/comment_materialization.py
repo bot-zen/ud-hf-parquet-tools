@@ -63,8 +63,7 @@ def materialize_comment_markers_batch(batch: Mapping[str, Any]) -> Dict[str, lis
         return {}
 
     python_batch: Dict[str, list[Any]] = {
-        column_name: _to_python_column(column_values)
-        for column_name, column_values in batch.items()
+        column_name: _to_python_column(column_values) for column_name, column_values in batch.items()
     }
 
     if "comments" not in python_batch:
@@ -74,15 +73,9 @@ def materialize_comment_markers_batch(batch: Mapping[str, Any]) -> Dict[str, lis
     has_text = "text" in python_batch
 
     sent_id_replacement = (
-        "CASE WHEN sent_id IS NULL OR sent_id = '' THEN c ELSE 'sent_id = ' || sent_id END"
-        if has_sent_id
-        else "c"
+        "CASE WHEN sent_id IS NULL OR sent_id = '' THEN c ELSE 'sent_id = ' || sent_id END" if has_sent_id else "c"
     )
-    text_replacement = (
-        "CASE WHEN text IS NULL OR text = '' THEN c ELSE 'text = ' || text END"
-        if has_text
-        else "c"
-    )
+    text_replacement = "CASE WHEN text IS NULL OR text = '' THEN c ELSE 'text = ' || text END" if has_text else "c"
 
     query = f"""
         SELECT * REPLACE (
